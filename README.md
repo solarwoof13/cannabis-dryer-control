@@ -34,7 +34,7 @@ Supply Duct: 1 sensor
 
 🚀 Quick Start
 Installation
-bashgit clone https://github.com/yourusername/cannabis-dryer-control.git
+bashgit clone https://github.com/solarwoof13/cannabis-dryer-control.git
 cd cannabis-dryer-control
 pip install -r requirements.txt
 python main.py
