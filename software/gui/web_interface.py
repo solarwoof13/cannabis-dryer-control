@@ -473,9 +473,6 @@ def control_equipment(equipment_name):
         logger.error(f"Equipment control error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/analytics')
-        logger.error(f"Error sending initial status: {e}")
-
 @socketio.on('disconnect')
 def handle_disconnect():
     """Handle client disconnection"""

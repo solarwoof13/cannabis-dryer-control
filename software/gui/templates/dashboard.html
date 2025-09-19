@@ -81,6 +81,25 @@
             animation: pulse 2s infinite;
         }
 
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: linear-gradient(45deg, #8858ed, #00E515);
+            transform: translateY(-2px);
+        }
+
         @keyframes pulse {
             0% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.05); opacity: 0.8; }
@@ -500,6 +519,11 @@
             <div class="spinner"></div>
             <p>Loading system status...</p>
         </div>
+
+        <div class="nav-links">
+                <a href="/" class="nav-link active">Live Dashboard</a>
+                <a href="/analytics" class="nav-link">Analytics</a>
+            </div>
 
         <div id="dashboard" class="dashboard" style="display: none;">
             <!-- Main VPD Display -->
