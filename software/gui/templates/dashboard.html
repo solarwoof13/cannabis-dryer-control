@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cannabis Dryer Control - Web Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #8858ed, #00E515);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .status-active {
+            background: linear-gradient(45deg, #00E515, #00c310);
+            box-shadow: 0 4px 15px rgba(0, 229, 21, 0.3);
+        }
+
+        .status-idle {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status-warning {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #8858ed, #00E515);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .main-display {
+            grid-row: span 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .vpd-display {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .vpd-value {
+            font-size: 72px;
+            font-weight: 800;
+            color: #8858ed;
+            text-shadow: 0 0 30px rgba(136, 88, 237, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .vpd-label {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .vpd-status {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .vpd-optimal {
+            background: linear-gradient(45deg, #00E515, #00c310);
+            color: #000;
+        }
+
+        .vpd-warning {
+            background: linear-gradient(45deg, #ffaa00, #ff8800);
+            color: #000;
+        }
+
+        .vpd-critical {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .conditions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .condition-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .condition-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #00E515;
+            margin-bottom: 5px;
+        }
+
+        .condition-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .condition-target {
+            font-size: 12px;
+            color: #8858ed;
+            margin-top: 5px;
+        }
+
+        .phase-display {
+            text-align: center;
+        }
+
+        .phase-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00E515;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .phase-progress {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 20px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .phase-progress-fill {
+            background: linear-gradient(90deg, #8858ed, #00E515);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .phase-time {
+            font-size: 32px;
+            font-weight: 700;
+            color: white;
+            margin: 20px 0;
+        }
+
+        .sensors-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .sensor-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .sensor-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .sensor-name {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
+        .sensor-temp {
+            font-size: 18px;
+            font-weight: 700;
+            color: #00E515;
+        }
+
+        .sensor-humidity {
+            font-size: 14px;
+            color: #8858ed;
+            margin-top: 4px;
+        }
+
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .equipment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .equipment-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .equipment-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .equipment-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #8858ed;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #8858ed, #6c63ff);
+            color: white;
+            box-shadow: 0 4px 15px rgba(136, 88, 237, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(136, 88, 237, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #00E515, #00c310);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(0, 229, 21, 0.3);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 229, 21, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .disturbance-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .disturbance-stable {
+            background: rgba(0, 229, 21, 0.2);
+            color: #00E515;
+            border: 1px solid rgba(0, 229, 21, 0.3);
+        }
+
+        .disturbance-minor {
+            background: rgba(255, 170, 0, 0.2);
+            color: #ffaa00;
+            border: 1px solid rgba(255, 170, 0, 0.3);
+        }
+
+        .disturbance-moderate {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .connected {
+            background: rgba(0, 229, 21, 0.2);
+            color: #00E515;
+            border: 1px solid rgba(0, 229, 21, 0.3);
+        }
+
+        .disconnected {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .main-display {
+                grid-column: span 2;
+                grid-row: span 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-display {
+                grid-column: span 1;
+            }
+            
+            .sensors-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .equipment-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .conditions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.6;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(136, 88, 237, 0.3);
+            border-top: 4px solid #8858ed;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">
+        <span id="connectionText">Connecting...</span>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo">🌱 Cannabis Dryer Control</div>
+            <div class="system-status">
+                <div class="status-indicator" id="systemStatus">
+                    <span>●</span>
+                    <span id="systemStatusText">Initializing...</span>
+                </div>
+                <div class="disturbance-indicator" id="disturbanceLevel">
+                    Stable
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingIndicator" class="loading">
+            <div class="spinner"></div>
+            <p>Loading system status...</p>
+        </div>
+
+        <div id="dashboard" class="dashboard" style="display: none;">
+            <!-- Main VPD Display -->
+            <div class="card main-display">
+                <div class="card-title">
+                    <span>🎯</span>
+                    Vapor Pressure Deficit Monitor
+                </div>
+                <div class="vpd-display">
+                    <div class="vpd-value" id="vpdValue">0.000</div>
+                    <div class="vpd-label">kPa</div>
+                    <div class="vpd-status" id="vpdStatus">Monitoring</div>
+                </div>
+                <div class="conditions-grid">
+                    <div class="condition-item">
+                        <div class="condition-value" id="currentTemp">--</div>
+                        <div class="condition-label">Temperature</div>
+                        <div class="condition-target" id="targetTemp">Target: --</div>
+                    </div>
+                    <div class="condition-item">
+                        <div class="condition-value" id="currentHumidity">--</div>
+                        <div class="condition-label">Humidity</div>
+                        <div class="condition-target" id="targetHumidity">Target: --</div>
+                    </div>
+                    <div class="condition-item">
+                        <div class="condition-value" id="currentDewPoint">--</div>
+                        <div class="condition-label">Dew Point</div>
+                        <div class="condition-target" id="targetDewPoint">Target: --</div>
+                    </div>
+                    <div class="condition-item">
+                        <div class="condition-value" id="waterActivity">--</div>
+                        <div class="condition-label">Water Activity</div>
+                        <div class="condition-target">Target: 0.60-0.62</div>
+                    </div>
+                </div>
+                <div class="control-buttons">
+                    <button class="btn btn-success" id="startBtn" onclick="startProcess()">Start Process</button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopProcess()" style="display: none;">Stop Process</button>
+                </div>
+            </div>
+
+            <!-- Process Progress -->
+            <div class="card">
+                <div class="card-title">
+                    <span>⏱️</span>
+                    Process Progress
+                </div>
+                <div class="phase-display">
+                    <div class="phase-name" id="currentPhase">Not Started</div>
+                    <div class="phase-progress">
+                        <div class="phase-progress-fill" id="phaseProgressFill" style="width: 0%"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; opacity: 0.8; margin-top: 5px;">
+                        <span id="phaseProgressPercent">0%</span>
+                        <span id="timeRemaining">--</span>
+                    </div>
+                    <div class="phase-time" id="elapsedTime">00:00:00</div>
+                </div>
+            </div>
+
+            <!-- Environmental Overview -->
+            <div class="card">
+                <div class="card-title">
+                    <span>🌡️</span>
+                    Environmental Summary
+                </div>
+                <div style="text-align: center; margin: 20px 0;">
+                    <div style="font-size: 20px; color: #00E515; margin: 10px 0;" id="avgTemp">--°F</div>
+                    <div style="font-size: 14px; opacity: 0.8;">Average Temperature</div>
+                    <div style="font-size: 20px; color: #8858ed; margin: 15px 0;" id="avgHumidity">--%</div>
+                    <div style="font-size: 14px; opacity: 0.8;">Average Humidity</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <div style="font-size: 14px; opacity: 0.8; margin-bottom: 5px;">Trichome Protection</div>
+                    <div style="font-size: 16px; color: #00E515; font-weight: 600;" id="trichomeStatus">Active</div>
+                </div>
+            </div>
+
+            <!-- Sensor Network -->
+            <div class="card">
+                <div class="card-title">
+                    <span>📊</span>
+                    Sensor Network
+                </div>
+                <div class="sensors-grid" id="sensorsGrid">
+                    <!-- Sensors will be populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Equipment Status -->
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-title">
+                    <span>⚙️</span>
+                    Equipment Status
+                </div>
+                <div class="equipment-grid" id="equipmentGrid">
+                    <!-- Equipment status will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Socket.IO connection
+        const socket = io();
+        let systemData = null;
+
+        // Connection status handling
+        socket.on('connect', function() {
+            updateConnectionStatus(true);
+            console.log('Connected to server');
+            socket.emit('request_status');
+        });
+
+        socket.on('disconnect', function() {
+            updateConnectionStatus(false);
+            console.log('Disconnected from server');
+        });
+
+        // System data updates
+        socket.on('system_update', function(data) {
+            systemData = data;
+            updateDashboard(data);
+            hideLoading();
+        });
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            const textEl = document.getElementById('connectionText');
+            
+            if (connected) {
+                statusEl.className = 'connection-status connected';
+                textEl.textContent = 'Connected';
+            } else {
+                statusEl.className = 'connection-status disconnected';
+                textEl.textContent = 'Disconnected';
+            }
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'grid';
+        }
+
+        function updateDashboard(data) {
+            // Update VPD display
+            document.getElementById('vpdValue').textContent = data.current_conditions.vpd_kpa.toFixed(3);
+            
+            // Update current conditions
+            document.getElementById('currentTemp').textContent = data.current_conditions.temperature_f + '°F';
+            document.getElementById('currentHumidity').textContent = data.current_conditions.humidity_percent + '%';
+            document.getElementById('currentDewPoint').textContent = data.current_conditions.dew_point_f + '°F';
+            document.getElementById('waterActivity').textContent = data.current_conditions.water_activity.toFixed(3);
+            
+            // Update targets
+            document.getElementById('targetTemp').textContent = 'Target: ' + data.target_conditions.temperature_f + '°F';
+            document.getElementById('targetHumidity').textContent = 'Target: ' + data.target_conditions.humidity_percent + '%';
+            document.getElementById('targetDewPoint').textContent = 'Target: ' + data.target_conditions.dew_point_f + '°F';
+            
+            // Update system status
+            const statusEl = document.getElementById('systemStatus');
+            const statusTextEl = document.getElementById('systemStatusText');
+            
+            if (data.system_active) {
+                statusEl.className = 'status-indicator status-active pulse';
+                statusTextEl.textContent = 'PROCESSING';
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+            } else {
+                statusEl.className = 'status-indicator status-idle';
+                statusTextEl.textContent = 'IDLE';
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('stopBtn').style.display = 'none';
+            }
+            
+            // Update disturbance level
+            const disturbanceEl = document.getElementById('disturbanceLevel');
+            const disturbanceLevel = data.process_status.disturbance_level;
+            disturbanceEl.textContent = disturbanceLevel.charAt(0).toUpperCase() + disturbanceLevel.slice(1);
+            disturbanceEl.className = 'disturbance-indicator disturbance-' + disturbanceLevel;
+            
+            // Update phase information
+            document.getElementById('currentPhase').textContent = data.process_status.current_phase.replace('_', ' ');
+            document.getElementById('phaseProgressPercent').textContent = data.process_status.phase_progress_percent.toFixed(1) + '%';
+            document.getElementById('phaseProgressFill').style.width = data.process_status.phase_progress_percent + '%';
+            document.getElementById('timeRemaining').textContent = data.process_status.time_remaining;
+            
+            // Update averages
+            document.getElementById('avgTemp').textContent = data.current_conditions.temperature_f + '°F';
+            document.getElementById('avgHumidity').textContent = data.current_conditions.humidity_percent + '%';
+            
+            // Update sensors
+            updateSensorsGrid(data.sensor_readings);
+            
+            // Update equipment
+            updateEquipmentGrid(data.equipment_status);
+            
+            // Update trichome protection status
+            document.getElementById('trichomeStatus').textContent = 
+                data.trichome_protection.trichome_protection_active ? 'Active' : 'Inactive';
+        }
+
+        function updateSensorsGrid(sensorData) {
+            const grid = document.getElementById('sensorsGrid');
+            grid.innerHTML = '';
+            
+            Object.keys(sensorData).forEach(sensorKey => {
+                const sensor = sensorData[sensorKey];
+                const sensorDiv = document.createElement('div');
+                sensorDiv.className = 'sensor-card';
+                
+                const sensorName = sensorKey.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                sensorDiv.innerHTML = `
+                    <div class="sensor-name">${sensorName}</div>
+                    <div class="sensor-temp">${sensor.temperature.toFixed(1)}°F</div>
+                    <div class="sensor-humidity">${sensor.humidity.toFixed(1)}% RH</div>
+                `;
+                
+                grid.appendChild(sensorDiv);
+            });
+        }
+
+        function updateEquipmentGrid(equipmentData) {
+            const grid = document.getElementById('equipmentGrid');
+            grid.innerHTML = '';
+            
+            Object.keys(equipmentData).forEach(equipmentKey => {
+                const value = equipmentData[equipmentKey];
+                const equipmentDiv = document.createElement('div');
+                equipmentDiv.className = 'equipment-item';
+                
+                const equipmentName = equipmentKey.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const unit = equipmentKey === 'mini_split' ? '°F' : '%';
+                
+                equipmentDiv.innerHTML = `
+                    <span class="equipment-name">${equipmentName}</span>
+                    <span class="equipment-value">${typeof value === 'number' ? value.toFixed(1) : value}${typeof value === 'number' ? unit : ''}</span>
+                `;
+                
+                grid.appendChild(equipmentDiv);
+            });
+        }
+
+        function startProcess() {
+            fetch('/api/start_process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Process started successfully');
+                } else {
+                    alert('Failed to start process: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error starting process:', error);
+                alert('Error starting process');
+            });
+        }
+
+        function stopProcess() {
+            if (confirm('Are you sure you want to stop the drying process?')) {
+                fetch('/api/stop_process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Process stopped successfully');
+                    } else {
+                        alert('Failed to stop process: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error stopping process:', error);
+                    alert('Error stopping process');
+                });
+            }
+        }
+
+        // Request status update every 30 seconds as backup
+        setInterval(() => {
+            socket.emit('request_status');
+        }, 30000);
+    </script>
+</body>
+</html>

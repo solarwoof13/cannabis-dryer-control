@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cannabis Dryer Analytics - Historical Data</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #8858ed, #00E515);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: linear-gradient(45deg, #8858ed, #00E515);
+            transform: translateY(-2px);
+        }
+
+        .controls-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        .control-input {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: #8858ed;
+            box-shadow: 0 0 0 2px rgba(136, 88, 237, 0.3);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #8858ed, #6c63ff);
+            color: white;
+            box-shadow: 0 4px 15px rgba(136, 88, 237, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(136, 88, 237, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .time-range-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .time-btn {
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .time-btn:hover, .time-btn.active {
+            background: linear-gradient(45deg, #8858ed, #00E515);
+            border-color: transparent;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .summary-card {
+            grid-column: span 2;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .summary-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #00E515;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .summary-change {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .summary-change.positive {
+            color: #00E515;
+        }
+
+        .summary-change.negative {
+            color: #ff6b6b;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.6;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(136, 88, 237, 0.3);
+            border-top: 4px solid #8858ed;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .session-selector {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .session-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .session-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .session-item:hover, .session-item.active {
+            background: rgba(136, 88, 237, 0.2);
+            border-color: #8858ed;
+        }
+
+        .session-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .session-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .session-duration {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-card {
+                grid-column: span 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .time-range-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📊 Cannabis Dryer Analytics</div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Live Dashboard</a>
+                <a href="/analytics" class="nav-link active">Analytics</a>
+            </div>
+        </div>
+
+        <!-- Session Selection -->
+        <div class="session-selector">
+            <h3>Select Session to Analyze</h3>
+            <div class="session-list" id="sessionList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading sessions...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Range Controls -->
+        <div class="controls-section">
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label class="control-label">Time Range</label>
+                    <div class="time-range-buttons">
+                        <button class="time-btn active" data-range="1h">1 Hour</button>
+                        <button class="time-btn" data-range="6h">6 Hours</button>
+                        <button class="time-btn" data-range="1d">1 Day</button>
+                        <button class="time-btn" data-range="3d">3 Days</button>
+                        <button class="time-btn" data-range="1w">1 Week</button>
+                        <button class="time-btn" data-range="all">All Data</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Custom Start Date</label>
+                    <input type="datetime-local" class="control-input" id="startDate">
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Custom End Date</label>
+                    <input type="datetime-local" class="control-input" id="endDate">
+                </div>
+                
+                <div class="control-group">
+                    <button class="btn btn-primary" onclick="updateCharts()">Update Charts</button>
+                    <button class="btn btn-secondary" onclick="exportData()">Export Data</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div id="chartsContainer" style="display: none;">
+            <div class="charts-grid">
+                <!-- VPD Chart -->
+                <div class="chart-card">
+                    <div class="chart-title">
+                        🎯 VPD Trend
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="vpdChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Temperature Chart -->
+                <div class="chart-card">
+                    <div class="chart-title">
+                        🌡️ Temperature Zones
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="temperatureChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Humidity Chart -->
+                <div class="chart-card">
+                    <div class="chart-title">
+                        💧 Humidity Levels
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="humidityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Equipment Chart -->
+                <div class="chart-card">
+                    <div class="chart-title">
+                        ⚙️ Equipment Activity
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="equipmentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Statistics -->
+            <div class="summary-card">
+                <div class="chart-title">📈 Session Summary</div>
+                <div class="summary-grid" id="summaryGrid">
+                    <!-- Summary items will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p>Loading analytics data...</p>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let charts = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSessions();
+            setupTimeRangeButtons();
+        });
+
+        function loadSessions() {
+            fetch('/api/sessions')
+                .then(response => response.json())
+                .then(data => {
+                    displaySessions(data.sessions);
+                })
+                .catch(error => {
+                    console.error('Error loading sessions:', error);
+                    document.getElementById('sessionList').innerHTML = '<p>Error loading sessions</p>';
+                });
+        }
+
+        function displaySessions(sessions) {
+            const sessionList = document.getElementById('sessionList');
+            
+            if (sessions.length === 0) {
+                sessionList.innerHTML = '<p>No sessions found. Start a drying process to generate data.</p>';
+                return;
+            }
+
+            sessionList.innerHTML = sessions.map(session => `
+                <div class="session-item" onclick="selectSession('${session.session_id}')">
+                    <div class="session-info">
+                        <div>
+                            <div class="session-name">${session.session_id}</div>
+                            <div class="session-duration">Started: ${new Date(session.start_time).toLocaleString()}</div>
+                        </div>
+                        <div style="color: ${session.status === 'active' ? '#00E515' : '#8858ed'}; font-weight: 600;">
+                            ${session.status.toUpperCase()}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectSession(sessionId) {
+            currentSessionId = sessionId;
+            
+            // Update UI
+            document.querySelectorAll('.session-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Load analytics for selected session
+            loadAnalytics();
+        }
+
+        function setupTimeRangeButtons() {
+            document.querySelectorAll('.time-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    if (currentSessionId) {
+                        loadAnalytics();
+                    }
+                });
+            });
+        }
+
+        function loadAnalytics() {
+            if (!currentSessionId) {
+                alert('Please select a session first');
+                return;
+            }
+
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('chartsContainer').style.display = 'none';
+
+            // Get time range
+            const activeRange = document.querySelector('.time-btn.active').dataset.range;
+            const timeRange = calculateTimeRange(activeRange);
+
+            // Build URL with time filters
+            let url = `/api/session/${currentSessionId}/analytics`;
+            if (timeRange.start && timeRange.end) {
+                url += `?start_time=${timeRange.start}&end_time=${timeRange.end}`;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    createCharts(data);
+                    createSummary(data);
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('chartsContainer').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error loading analytics:', error);
+                    document.getElementById('loadingState').innerHTML = '<p>Error loading analytics data</p>';
+                });
+        }
+
+        function calculateTimeRange(range) {
+            const now = new Date();
+            let start = null;
+
+            switch(range) {
+                case '1h':
+                    start = new Date(now.getTime() - 60 * 60 * 1000);
+                    break;
+                case '6h':
+                    start = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+                    break;
+                case '1d':
+                    start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                    break;
+                case '3d':
+                    start = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+                    break;
+                case '1w':
+                    start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'all':
+                default:
+                    start = null;
+                    break;
+            }
+
+            return {
+                start: start ? start.toISOString() : null,
+                end: now.toISOString()
+            };
+        }
+
+        function createCharts(data) {
+            // Destroy existing charts
+            Object.values(charts).forEach(chart => chart.destroy());
+            charts = {};
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'white'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: 'white' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    y: {
+                        ticks: { color: 'white' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            };
+
+            // VPD Chart
+            charts.vpd = new Chart(document.getElementById('vpdChart'), {
+                type: 'line',
+                data: {
+                    labels: data.timestamps.map(t => new Date(t).toLocaleTimeString()),
+                    datasets: [{
+                        label: 'VPD (kPa)',
+                        data: data.avg_vpds,
+                        borderColor: '#8858ed',
+                        backgroundColor: 'rgba(136, 88, 237, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // Temperature Chart
+            charts.temperature = new Chart(document.getElementById('temperatureChart'), {
+                type: 'line',
+                data: {
+                    labels: data.timestamps.map(t => new Date(t).toLocaleTimeString()),
+                    datasets: [{
+                        label: 'Avg Temperature (°F)',
+                        data: data.avg_temperatures,
+                        borderColor: '#00E515',
+                        backgroundColor: 'rgba(0, 229, 21, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // Humidity Chart
+            charts.humidity = new Chart(document.getElementById('humidityChart'), {
+                type: 'line',
+                data: {
+                    labels: data.timestamps.map(t => new Date(t).toLocaleTimeString()),
+                    datasets: [{
+                        label: 'Avg Humidity (%)',
+                        data: data.avg_humidities,
+                        borderColor: '#00bfff',
+                        backgroundColor: 'rgba(0, 191, 255, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // Equipment Chart
+            if (data.equipment_changes.length > 0) {
+                charts.equipment = new Chart(document.getElementById('equipmentChart'), {
+                    type: 'line',
+                    data: {
+                        labels: data.equipment_changes.map(e => new Date(e.timestamp).toLocaleTimeString()),
+                        datasets: [
+                            {
+                                label: 'Dehumidifier (%)',
+                                data: data.equipment_changes.map(e => e.dehumidifier),
+                                borderColor: '#ff6b6b',
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Humidifier (%)',
+                                data: data.equipment_changes.map(e => e.humidifier),
+                                borderColor: '#4ecdc4',
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: chartOptions
+                });
+            }
+        }
+
+        function createSummary(data) {
+            const summaryGrid = document.getElementById('summaryGrid');
+            
+            const avgVPD = data.avg_vpds.reduce((a, b) => a + b, 0) / data.avg_vpds.length;
+            const avgTemp = data.avg_temperatures.reduce((a, b) => a + b, 0) / data.avg_temperatures.length;
+            const avgHumidity = data.avg_humidities.reduce((a, b) => a + b, 0) / data.avg_humidities.length;
+            const avgWaterActivity = data.avg_water_activities.reduce((a, b) => a + b, 0) / data.avg_water_activities.length;
+
+            summaryGrid.innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-value">${avgVPD.toFixed(3)}</div>
+                    <div class="summary-label">Avg VPD (kPa)</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${avgTemp.toFixed(1)}°F</div>
+                    <div class="summary-label">Avg Temperature</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${avgHumidity.toFixed(1)}%</div>
+                    <div class="summary-label">Avg Humidity</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${avgWaterActivity.toFixed(3)}</div>
+                    <div class="summary-label">Avg Water Activity</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${data.timestamps.length}</div>
+                    <div class="summary-label">Data Points</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${((data.timestamps.length * 5) / 60).toFixed(1)}h</div>
+                    <div class="summary-label">Duration</div>
+                </div>
+            `;
+        }
+
+        function updateCharts() {
+            if (currentSessionId) {
+                loadAnalytics();
+            }
+        }
+
+        function exportData() {
+            if (!currentSessionId) {
+                alert('Please select a session first');
+                return;
+            }
+
+            window.open(`/api/session/${currentSessionId}/export`, '_blank');
+        }
+    </script>
+</body>
+</html>

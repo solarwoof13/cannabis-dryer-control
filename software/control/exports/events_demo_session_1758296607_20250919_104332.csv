@@ -1,0 +1,4 @@
+id,timestamp,session_id,event_type,description,data,severity
+1,2025-09-19T10:43:27.688142,demo_session_1758296607,process_start,Started drying session: demo_session_1758296607,"{""target_temperature"": 68.0, ""target_humidity"": 58.0, ""target_vpd"": 1.1, ""batch_size"": ""5 lbs"", ""strain"": ""Demo Strain""}",info
+2,2025-09-19T10:43:29.706651,demo_session_1758296607,phase_change,Moved to mid-drying phase,"{""previous_phase"": ""initial_moisture"", ""new_phase"": ""mid_drying""}",info
+3,2025-09-19T10:43:32.734954,demo_session_1758296607,process_stop,Ended drying session: demo_session_1758296607,"{""final_water_activity"": 0.61, ""final_vpd"": 1.05}",info
