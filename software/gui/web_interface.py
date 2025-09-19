@@ -474,20 +474,6 @@ def control_equipment(equipment_name):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/analytics')
-def analytics():
-    """Analytics dashboard page"""
-    return render_template('analytics.html')
-
-@socketio.on('connect')
-def handle_connect():
-    """Handle client connection"""
-    logger.info(f"Client connected: {request.sid}")
-    
-    # Send current status to new client
-    try:
-        status = monitoring_service.get_system_status()
-        emit('system_update', status)
-    except Exception as e:
         logger.error(f"Error sending initial status: {e}")
 
 @socketio.on('disconnect')
