@@ -1,0 +1,15 @@
+```txt
+# Raspberry Pi specific requirements
+RPi.GPIO==0.7.1
+adafruit-circuitpython-ahtx0==1.0.17
+adafruit-circuitpython-sht31d==2.3.28
+smbus2==0.4.3
+board==1.0
+busio==1.14.3
+
+# Core requirements (same as main)
+flask==2.3.3
+flask-cors==4.0.0
+flask-socketio==5.3.4
+python-socketio==5.9.0
+numpy==1.24.3
