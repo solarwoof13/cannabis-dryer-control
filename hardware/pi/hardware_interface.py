@@ -19,11 +19,12 @@ class GPIOController:
     def __init__(self):
         # GPIO pin assignments
         self.pins = {
-            'dehum': 17,           # Dehumidifier power relay
-            'hum_solenoid': 27,    # Humidifier water solenoid
-            'erv': 22,             # ERV control
-            'supply_fan': 23,      # Supply fan relay
-            'return_fan': 24       # Return fan relay
+            'dehum': 17,           # Channel 1 - Dehumidifier power
+            'hum_solenoid': 27,    # Channel 2 - Humidifier water solenoid  
+            'erv': 22,             # Channel 3 - ERV control
+            'supply_fan': 23,      # Channel 4 - Supply fan
+            'return_fan': 24,      # Channel 5 - Return fan
+            'hum_fan': 25         # Channel 6 - Humidifier fan
         }
         
         # Initialize GPIO
