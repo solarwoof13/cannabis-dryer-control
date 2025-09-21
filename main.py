@@ -1,89 +1,64 @@
 #!/usr/bin/env python3
 """
-Cannabis Dryer Control System
-Main application entry point
-
-Controls environmental conditions for precise cannabis drying using VPD.
+Main entry point for Cannabis Dryer Control System
 """
 
 import sys
-import os
+import threading
 import logging
 import time
-from datetime import datetime
+from software.control.vpd_controller import PrecisionVPDController, SimulationMode
+from software.control.api_server import app, socketio, init_controller, start_background_tasks
 
-# Add project root to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-def setup_logging():
-    """Configure logging for the application"""
-    os.makedirs('logs', exist_ok=True)
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler('logs/dryer_control.log'),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-    
-    logger = logging.getLogger(__name__)
-    logger.info("Logging system initialized")
-    return logger
-
-def check_system_requirements():
-    """Check if we're running on supported hardware"""
-    try:
-        import RPi.GPIO as GPIO
-        return True, "Running on Raspberry Pi"
-    except ImportError:
-        return False, "Running in development mode (no GPIO access)"
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/dryer_control.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 def main():
-    """Main application function"""
-    logger = setup_logging()
-    logger.info("=" * 50)
-    logger.info("Cannabis Dryer Control System Starting")
-    logger.info(f"System startup time: {datetime.now()}")
-    logger.info("=" * 50)
+    """Start the complete system"""
+    print("="*60)
+    print("Cannabis Dryer Control System")
+    print("="*60)
     
-    # Check system requirements
-    is_pi, system_msg = check_system_requirements()
-    logger.info(system_msg)
+    # Initialize the VPD controller
+    controller = PrecisionVPDController()
     
-    try:
-        # Import system components (will create these files next)
-        if is_pi:
-            logger.info("Initializing hardware components...")
-            # TODO: Initialize actual hardware
-            # from software.control.sensor_manager import SensorManager
-            # from software.control.equipment_controller import EquipmentController
-            # sensor_manager = SensorManager()
-            # equipment_controller = EquipmentController()
-        else:
-            logger.info("Running in simulation mode...")
-        
-        # Start the web interface
-        logger.info("Starting web interface...")
-        # TODO: Start Flask web server
-        # from software.gui.web_interface import start_web_server
-        # start_web_server()
-        
-        # For now, just run a simple loop
-        logger.info("System running. Press Ctrl+C to exit.")
+    # Always run in simulation mode on Mac
+    print("Running in SIMULATION mode")
+    simulator = SimulationMode(controller)
+    
+    # Start simulator in background
+    def run_simulator():
         while True:
-            logger.info(f"System heartbeat: {datetime.now()}")
-            time.sleep(60)  # Log every minute
-            
-    except KeyboardInterrupt:
-        logger.info("Shutdown requested by user")
-    except Exception as e:
-        logger.error(f"System startup failed: {e}")
-        logger.exception("Full error details:")
-        sys.exit(1)
-    finally:
-        logger.info("Cannabis Dryer Control System shutting down")
+            simulator.generate_readings()
+            time.sleep(2)
+    
+    sim_thread = threading.Thread(target=run_simulator, daemon=True)
+    sim_thread.start()
+    
+    # Start control loop in background
+    control_thread = threading.Thread(target=controller.run_control_loop, daemon=True)
+    control_thread.start()
+    
+    # Initialize Flask with the controller
+    init_controller(controller)
+    
+    # Start background tasks
+    start_background_tasks()
+    
+    # Start the web server
+    print("-"*60)
+    print("Starting web interface on http://localhost:5000")
+    print("Open your browser to see the dashboard")
+    print("-"*60)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
 
 if __name__ == "__main__":
     main()
