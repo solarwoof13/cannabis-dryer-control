@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            user-select: none;
+        }
+
+        /* TOP BAR STYLES */
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 35px;
+            background: linear-gradient(to bottom, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.9));
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .wifi-layout {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .wifi-signal svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .wifi-status {
+            color: #00C310;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .clock-layout {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .current-time {
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .current-date {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* NAVIGATION BUTTONS */
+        .nav-buttons {
+            position: absolute;
+            top: 45px;
+            left: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 600;
+        }
+
+        .nav-button {
+            background: linear-gradient(145deg, #303030 0%, #2a2a2a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-button svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        /* MAIN CONTAINER */
+        .settings-container {
+            position: absolute;
+            top: 90px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        /* SETTINGS SECTIONS */
+        .settings-section {
+            background: linear-gradient(135deg, rgba(136, 88, 237, 0.1), rgba(102, 51, 187, 0.1));
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section-title {
+            color: #8858ed;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* FORM CONTROLS */
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .control-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: #8858ed;
+            box-shadow: 0 0 10px rgba(136, 88, 237, 0.3);
+        }
+
+        .control-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* SLIDER CONTROLS */
+        .slider-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(136, 88, 237, 0.4);
+        }
+
+        .slider-value {
+            min-width: 60px;
+            text-align: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 5px 10px;
+            background: rgba(136, 88, 237, 0.2);
+            border-radius: 8px;
+        }
+
+        /* SESSION CONTROLS */
+        .session-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .session-button {
+            flex: 1;
+            padding: 12px;
+            background: linear-gradient(135deg, #303030, #2a2a2a);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .session-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .session-button.active {
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+            border-color: #8858ed;
+        }
+
+        .session-button.stop {
+            background: linear-gradient(135deg, #FF4444, #CC0000);
+        }
+
+        /* TIME RANGE SELECTOR */
+        .time-range-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .range-button {
+            flex: 1;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .range-button:hover {
+            background: rgba(136, 88, 237, 0.2);
+            border-color: #8858ed;
+        }
+
+        .range-button.active {
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+            border-color: #8858ed;
+        }
+
+        /* CHART PLACEHOLDER */
+        .chart-container {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            margin-top: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* SAVE BUTTON */
+        .save-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #00C310, #00E515);
+            border: none;
+            border-radius: 24px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 195, 16, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .save-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 195, 16, 0.5);
+        }
+
+        /* VPD MODE SELECTOR */
+        .vpd-mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-option {
+            flex: 1;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .mode-option.active {
+            border-color: #8858ed;
+            background: rgba(136, 88, 237, 0.2);
+        }
+
+        .mode-title {
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .mode-value {
+            color: #8858ed;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* WARNING TEXT */
+        .warning-text {
+            color: #FFA500;
+            font-size: 11px;
+            font-style: italic;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* TOGGLE SWITCH */
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle.active {
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle.active .toggle-slider {
+            transform: translateX(24px);
+        }
+    </style>
+</head>
+<body>
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <div class="wifi-layout">
+            <div class="wifi-signal">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="12" y1="20" x2="12.01" y2="20" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="wifi-status">CONNECTED</div>
+        </div>
+        <div class="clock-layout">
+            <div class="current-time" id="currentTime">12:45 PM</div>
+            <div class="current-date" id="currentDate">DEC 20, 2024</div>
+        </div>
+    </div>
+
+    <!-- NAVIGATION BUTTONS -->
+    <div class="nav-buttons">
+        <button class="nav-button" onclick="goHome()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9,22 9,12 15,12 15,22"/>
+            </svg>
+        </button>
+        <button class="nav-button" onclick="goToAnalytics()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- SETTINGS CONTAINER -->
+    <div class="settings-container">
+        <!-- PROCESS CONTROL SECTION -->
+        <div class="settings-section">
+            <h2 class="section-title">Process Control</h2>
+            
+            <!-- Session Controls -->
+            <div class="session-controls">
+                <button class="session-button active" onclick="startNewSession()">New Session</button>
+                <button class="session-button" onclick="pauseSession()">Pause</button>
+                <button class="session-button stop" onclick="stopSession()">Stop</button>
+            </div>
+
+            <!-- Drying Time -->
+            <div class="control-group">
+                <label class="control-label">Drying Time (Days)</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="dryingTime" min="2" max="7" value="4" oninput="updateSliderValue('dryingTime')">
+                    <div class="slider-value" id="dryingTimeValue">4 days</div>
+                </div>
+            </div>
+
+            <!-- Curing Time -->
+            <div class="control-group">
+                <label class="control-label">Curing Time (Days)</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="curingTime" min="2" max="10" value="4" oninput="updateSliderValue('curingTime')">
+                    <div class="slider-value" id="curingTimeValue">4 days</div>
+                </div>
+            </div>
+
+            <!-- Target Water Activity -->
+            <div class="control-group">
+                <label class="control-label">Target Water Activity</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="waterActivity" min="0.55" max="0.65" step="0.01" value="0.60" oninput="updateSliderValue('waterActivity')">
+                    <div class="slider-value" id="waterActivityValue">0.60</div>
+                </div>
+            </div>
+
+            <!-- Linear Adjustment -->
+            <div class="control-group">
+                <label class="control-label">Linear Adjustment Rate</label>
+                <div class="toggle-switch">
+                    <div class="toggle active" onclick="toggleSwitch(this)">
+                        <div class="toggle-slider"></div>
+                    </div>
+                    <span style="color: white; font-size: 13px;">Smooth Transitions</span>
+                </div>
+                <div class="warning-text">
+                    ⚠️ Prevents case hardening through gradual VPD changes
+                </div>
+            </div>
+        </div>
+
+        <!-- VPD CONTROL SECTION -->
+        <div class="settings-section">
+            <h2 class="section-title">VPD Control Settings</h2>
+            
+            <!-- VPD Mode Selector -->
+            <div class="vpd-mode-selector">
+                <div class="mode-option active" onclick="selectVPDMode(this, 'vpd')">
+                    <div class="mode-title">VPD Control</div>
+                    <div class="mode-value">Direct VPD</div>
+                </div>
+                <div class="mode-option" onclick="selectVPDMode(this, 'temp')">
+                    <div class="mode-title">Temperature</div>
+                    <div class="mode-value">Fixed Temp</div>
+                </div>
+                <div class="mode-option" onclick="selectVPDMode(this, 'humidity')">
+                    <div class="mode-title">Humidity</div>
+                    <div class="mode-value">Fixed RH</div>
+                </div>
+            </div>
+
+            <!-- VPD Setpoint -->
+            <div class="control-group" id="vpdControl">
+                <label class="control-label">VPD Setpoint (kPa)</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="vpdSetpoint" min="0.6" max="2.0" step="0.05" value="1.2" oninput="updateVPDSettings()">
+                    <div class="slider-value" id="vpdSetpointValue">1.2 kPa</div>
+                </div>
+            </div>
+
+            <!-- Temperature Setpoint (hidden by default) -->
+            <div class="control-group" id="tempControl" style="display: none;">
+                <label class="control-label">Temperature Setpoint (°F)</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="tempSetpoint" min="60" max="80" value="72" oninput="updateTempSettings()">
+                    <div class="slider-value" id="tempSetpointValue">72°F</div>
+                </div>
+            </div>
+
+            <!-- Humidity Setpoint (hidden by default) -->
+            <div class="control-group" id="humidityControl" style="display: none;">
+                <label class="control-label">Humidity Setpoint (%)</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="humiditySetpoint" min="40" max="70" value="55" oninput="updateHumiditySettings()">
+                    <div class="slider-value" id="humiditySetpointValue">55%</div>
+                </div>
+            </div>
+
+            <!-- VPD Range Tolerance -->
+            <div class="control-group">
+                <label class="control-label">VPD Tolerance (±kPa)</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="vpdTolerance" min="0.05" max="0.3" step="0.05" value="0.1" oninput="updateSliderValue('vpdTolerance')">
+                    <div class="slider-value" id="vpdToleranceValue">±0.1</div>
+                </div>
+            </div>
+
+            <!-- Alert Thresholds -->
+            <div class="control-group">
+                <label class="control-label">Alert Threshold (±kPa)</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="alertThreshold" min="0.2" max="0.5" step="0.05" value="0.3" oninput="updateSliderValue('alertThreshold')">
+                    <div class="slider-value" id="alertThresholdValue">±0.3</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DATA VISUALIZATION SECTION -->
+        <div class="settings-section">
+            <h2 class="section-title">Data Visualization</h2>
+            
+            <!-- Time Range Selector -->
+            <label class="control-label">Chart Time Range</label>
+            <div class="time-range-selector">
+                <button class="range-button active" onclick="selectTimeRange(this, 'hourly')">Hourly</button>
+                <button class="range-button" onclick="selectTimeRange(this, 'daily')">Daily</button>
+                <button class="range-button" onclick="selectTimeRange(this, 'weekly')">Weekly</button>
+            </div>
+
+            <!-- Chart Preview -->
+            <div class="chart-container">
+                <span>Chart Preview - VPD Trends</span>
+            </div>
+
+            <!-- Export Options -->
+            <div class="control-group" style="margin-top: 20px;">
+                <label class="control-label">Data Export</label>
+                <div class="session-controls">
+                    <button class="session-button" onclick="exportCSV()">Export CSV</button>
+                    <button class="session-button" onclick="exportPDF()">Export Report</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- EQUIPMENT SETTINGS SECTION -->
+        <div class="settings-section">
+            <h2 class="section-title">Equipment Settings</h2>
+            
+            <!-- Fan Speed Control -->
+            <div class="control-group">
+                <label class="control-label">Fan Speed (%)</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="fanSpeed" min="20" max="100" step="10" value="60" oninput="updateSliderValue('fanSpeed')">
+                    <div class="slider-value" id="fanSpeedValue">60%</div>
+                </div>
+            </div>
+
+            <!-- ERV Exchange Rate -->
+            <div class="control-group">
+                <label class="control-label">ERV Exchange Rate</label>
+                <div class="slider-control">
+                    <input type="range" class="slider" id="ervRate" min="0" max="100" step="10" value="30" oninput="updateSliderValue('ervRate')">
+                    <div class="slider-value" id="ervRateValue">30%</div>
+                </div>
+            </div>
+
+            <!-- Mini-Split Mode -->
+            <div class="control-group">
+                <label class="control-label">Mini-Split Mode</label>
+                <select class="control-input">
+                    <option>Auto</option>
+                    <option>Cool</option>
+                    <option>Heat</option>
+                    <option>Dry</option>
+                    <option>Fan</option>
+                </select>
+            </div>
+
+            <!-- Equipment Override -->
+            <div class="control-group">
+                <label class="control-label">Manual Override</label>
+                <div class="toggle-switch">
+                    <div class="toggle" onclick="toggleSwitch(this)">
+                        <div class="toggle-slider"></div>
+                    </div>
+                    <span style="color: white; font-size: 13px;">Enable Manual Control</span>
+                </div>
+            </div>
+
+            <!-- Safety Limits -->
+            <div class="control-group">
+                <label class="control-label">Safety Limits</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" class="control-input" placeholder="Min Temp (°F)" value="65" style="flex: 1;">
+                    <input type="number" class="control-input" placeholder="Max Temp (°F)" value="80" style="flex: 1;">
+                </div>
+                <div class="warning-text">
+                    ⚠️ System will alert if limits are exceeded
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAVE BUTTON -->
+    <button class="save-button" onclick="saveSettings()">Save Settings</button>
+
+    <script>
+        // Update time display
+        function updateTime() {
+            const now = new Date();
+            const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+            const dateOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+            
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', timeOptions);
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', dateOptions).toUpperCase();
+        }
+
+        // Update slider values
+        function updateSliderValue(sliderId) {
+            const slider = document.getElementById(sliderId);
+            const valueDisplay = document.getElementById(sliderId + 'Value');
+            
+            switch(sliderId) {
+                case 'dryingTime':
+                case 'curingTime':
+                    valueDisplay.textContent = slider.value + ' days';
+                    break;
+                case 'waterActivity':
+                    valueDisplay.textContent = slider.value;
+                    break;
+                case 'vpdTolerance':
+                case 'alertThreshold':
+                    valueDisplay.textContent = '±' + slider.value;
+                    break;
+                case 'fanSpeed':
+                case 'ervRate':
+                    valueDisplay.textContent = slider.value + '%';
+                    break;
+                default:
+                    valueDisplay.textContent = slider.value;
+            }
+        }
+
+        // VPD Settings Update
+        function updateVPDSettings() {
+            const slider = document.getElementById('vpdSetpoint');
+            const valueDisplay = document.getElementById('vpdSetpointValue');
+            valueDisplay.textContent = slider.value + ' kPa';
+            
+            // Disable temp and humidity controls when VPD is adjusted
+            document.getElementById('tempSetpoint').disabled = true;
+            document.getElementById('humiditySetpoint').disabled = true;
+        }
+
+        function updateTempSettings() {
+            const slider = document.getElementById('tempSetpoint');
+            const valueDisplay = document.getElementById('tempSetpointValue');
+            valueDisplay.textContent = slider.value + '°F';
+            
+            // Disable VPD and humidity when temp is adjusted
+            document.getElementById('vpdSetpoint').disabled = true;
+            document.getElementById('humiditySetpoint').disabled = true;
+        }
+
+        function updateHumiditySettings() {
+            const slider = document.getElementById('humiditySetpoint');
+            const valueDisplay = document.getElementById('humiditySetpointValue');
+            valueDisplay.textContent = slider.value + '%';
+            
+            // Disable VPD and temp when humidity is adjusted
+            document.getElementById('vpdSetpoint').disabled = true;
+            document.getElementById('tempSetpoint').disabled = true;
+        }
+
+        // VPD Mode Selection
+        function selectVPDMode(element, mode) {
+            // Update active state
+            document.querySelectorAll('.mode-option').forEach(opt => opt.classList.remove('active'));
+            element.classList.add('active');
+            
+            // Show/hide relevant controls
+            document.getElementById('vpdControl').style.display = mode === 'vpd' ? 'block' : 'none';
+            document.getElementById('tempControl').style.display = mode === 'temp' ? 'block' : 'none';
+            document.getElementById('humidityControl').style.display = mode === 'humidity' ? 'block' : 'none';
+            
+            // Enable/disable sliders based on mode
+            document.getElementById('vpdSetpoint').disabled = mode !== 'vpd';
+            document.getElementById('tempSetpoint').disabled = mode !== 'temp';
+            document.getElementById('humiditySetpoint').disabled = mode !== 'humidity';
+        }
+
+        // Time Range Selection
+        function selectTimeRange(element, range) {
+            document.querySelectorAll('.range-button').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            console.log('Selected time range:', range);
+            // Here you would update the chart based on the selected range
+        }
+
+        // Toggle Switch
+        function toggleSwitch(element) {
+            element.classList.toggle('active');
+        }
+
+        // Session Controls with Backend
+        async function startNewSession() {
+            if(confirm('Start a new drying/curing session? This will reset current progress.')) {
+                try {
+                    const response = await fetch(`${API_URL}/session/start`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'full' })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        showNotification('New session started', 'success');
+                        // Update button states
+                        document.querySelectorAll('.session-button').forEach(btn => btn.classList.remove('active'));
+                        event.target.classList.add('active');
+                    }
+                } catch (error) {
+                    console.error('Error starting session:', error);
+                    showNotification('Failed to start session', 'error');
+                }
+            }
+        }
+
+        async function pauseSession() {
+            try {
+                const response = await fetch(`${API_URL}/session/pause`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('Session paused', 'success');
+                }
+            } catch (error) {
+                console.error('Error pausing session:', error);
+            }
+        }
+
+        async function stopSession() {
+            if(confirm('Are you sure you want to stop the current session?')) {
+                try {
+                    const response = await fetch(`${API_URL}/session/stop`, {
+                        method: 'POST'
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        showNotification('Session stopped', 'success');
+                        document.querySelectorAll('.session-button').forEach(btn => btn.classList.remove('active'));
+                    }
+                } catch (error) {
+                    console.error('Error stopping session:', error);
+                }
+            }
+        }
+
+        // Export Functions with Backend
+        async function exportCSV() {
+            try {
+                window.location.href = `${API_URL}/export/csv`;
+                showNotification('Exporting CSV...', 'success');
+            } catch (error) {
+                console.error('Error exporting CSV:', error);
+                showNotification('Export failed', 'error');
+            }
+        }
+
+        function exportPDF() {
+            showNotification('PDF export coming soon', 'info');
+        }
+
+        // Navigation
+        function goHome() {
+            window.location.href = '/index.html';
+        }
+
+        function goToAnalytics() {
+            window.location.href = '/analytics.html';
+        }
+
+        // API Configuration
+        const API_URL = 'http://localhost:5000/api';
+        
+        // Load Settings from Backend
+        async function loadSettings() {
+            try {
+                const response = await fetch(`${API_URL}/settings`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const settings = data.settings;
+                    
+                    // Process settings
+                    if (settings.process) {
+                        document.getElementById('dryingTime').value = settings.process.drying_time_days;
+                        document.getElementById('curingTime').value = settings.process.curing_time_days;
+                        document.getElementById('waterActivity').value = settings.process.target_water_activity;
+                        updateSliderValue('dryingTime');
+                        updateSliderValue('curingTime');
+                        updateSliderValue('waterActivity');
+                    }
+                    
+                    // VPD settings
+                    if (settings.vpd_control) {
+                        document.getElementById('vpdSetpoint').value = settings.vpd_control.vpd_setpoint;
+                        document.getElementById('tempSetpoint').value = settings.vpd_control.temperature_setpoint;
+                        document.getElementById('humiditySetpoint').value = settings.vpd_control.humidity_setpoint;
+                        document.getElementById('vpdTolerance').value = settings.vpd_control.vpd_tolerance;
+                        document.getElementById('alertThreshold').value = settings.vpd_control.vpd_alert_threshold;
+                        
+                        // Update control mode
+                        selectVPDMode(document.querySelector('.mode-option'), settings.vpd_control.control_mode);
+                        
+                        updateVPDSettings();
+                        updateTempSettings();
+                        updateHumiditySettings();
+                        updateSliderValue('vpdTolerance');
+                        updateSliderValue('alertThreshold');
+                    }
+                    
+                    // Equipment settings
+                    if (settings.equipment) {
+                        document.getElementById('fanSpeed').value = settings.equipment.fan_speed_percent;
+                        document.getElementById('ervRate').value = settings.equipment.erv_exchange_rate;
+                        updateSliderValue('fanSpeed');
+                        updateSliderValue('ervRate');
+                    }
+                    
+                    console.log('Settings loaded successfully');
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+        
+        // Save Settings to Backend
+        async function saveSettings() {
+            const settings = {
+                process: {
+                    drying_time_days: parseInt(document.getElementById('dryingTime').value),
+                    curing_time_days: parseInt(document.getElementById('curingTime').value),
+                    target_water_activity: parseFloat(document.getElementById('waterActivity').value),
+                    linear_adjustment: document.querySelector('.toggle.active') ? true : false
+                },
+                vpd_control: {
+                    control_mode: document.querySelector('.mode-option.active').onclick.toString().includes('vpd') ? 'vpd' : 
+                                 document.querySelector('.mode-option.active').onclick.toString().includes('temp') ? 'temperature' : 'humidity',
+                    vpd_setpoint: parseFloat(document.getElementById('vpdSetpoint').value),
+                    vpd_tolerance: parseFloat(document.getElementById('vpdTolerance').value),
+                    vpd_alert_threshold: parseFloat(document.getElementById('alertThreshold').value),
+                    temperature_setpoint: parseFloat(document.getElementById('tempSetpoint').value),
+                    humidity_setpoint: parseFloat(document.getElementById('humiditySetpoint').value)
+                },
+                equipment: {
+                    fan_speed_percent: parseInt(document.getElementById('fanSpeed').value),
+                    erv_exchange_rate: parseInt(document.getElementById('ervRate').value),
+                    mini_split_mode: document.querySelector('.control-input').value.toLowerCase(),
+                    manual_override: document.querySelectorAll('.toggle')[1]?.classList.contains('active') || false,
+                    safety_temp_min: parseInt(document.querySelectorAll('input[type="number"]')[0]?.value || 65),
+                    safety_temp_max: parseInt(document.querySelectorAll('input[type="number"]')[1]?.value || 80)
+                },
+                data_visualization: {
+                    chart_time_range: document.querySelector('.range-button.active')?.textContent.toLowerCase() || 'hourly'
+                }
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/settings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Show success message
+                    showNotification('Settings saved successfully!', 'success');
+                } else {
+                    showNotification('Error saving settings', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showNotification('Failed to save settings', 'error');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 50px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? 'linear-gradient(135deg, #00C310, #00E515)' : 'linear-gradient(135deg, #FF4444, #CC0000)'};
+                color: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                font-weight: 600;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize
+        updateTime();
+        setInterval(updateTime, 60000);
+        
+        // Load settings on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+        });
+    </script>
+</body>
+</html>
