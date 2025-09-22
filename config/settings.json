@@ -1,0 +1,86 @@
+{
+  "system": {
+    "name": "Cannabis Dryer Control System",
+    "version": "1.0.0",
+    "container_size": "40ft",
+    "air_room_length": "7ft"
+  },
+  "hardware": {
+    "raspberry_pi": {
+      "model": "4B",
+      "display": "7inch_1024x600"
+    },
+    "sensors": {
+      "protocol": "I2C",
+      "bus": "Sparkfun_Qwiic",
+      "max_distance": "100ft",
+      "count": 6,
+      "locations": {
+        "air_room": 1,
+        "drying_room": 4,
+        "supply_duct": 1
+      }
+    },
+    "equipment": {
+      "mini_split": {
+        "control_type": "IR",
+        "backup_controller": "arduino"
+      },
+      "dehumidifier": {
+        "control_type": "power_relay"
+      },
+      "humidifier": {
+        "control_type": "relay_control"
+      },
+      "erv": {
+        "control_type": "relay_control"
+      },
+      "exhaust_fan": {
+        "cfm": 400,
+        "control_type": "power_relay"
+      },
+      "supply_fan": {
+        "cfm": 400,
+        "control_type": "power_relay"
+      }
+    }
+  },
+  "control": {
+    "vpd": {
+      "target_range": {
+        "drying_early": {"min": 1.0, "max": 1.2},
+        "drying_mid": {"min": 0.8, "max": 1.0},
+        "drying_late": {"min": 0.6, "max": 0.8},
+        "curing": {"min": 0.4, "max": 0.6}
+      },
+      "safety_limits": {
+        "absolute_min": 0.3,
+        "absolute_max": 2.0
+      }
+    },
+    "temperature": {
+      "target_range": {"min": 60, "max": 75},
+      "safety_limits": {"min": 50, "max": 85}
+    },
+    "humidity": {
+      "target_range": {"min": 55, "max": 65},
+      "safety_limits": {"min": 40, "max": 80}
+    }
+  },
+  "drying_schedule": {
+    "total_days": 8,
+    "drying_days": 4,
+    "curing_days": 4,
+    "water_activity_target": 0.62
+  },
+  "web_interface": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false
+  },
+  "logging": {
+    "level": "INFO",
+    "max_file_size": "10MB",
+    "backup_count": 5
+  }
+}

@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            user-select: none;
+        }
+
+        /* TOP BAR */
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 35px;
+            background: linear-gradient(to bottom, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.9));
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .wifi-layout {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .wifi-signal svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .wifi-status {
+            color: #00C310;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .clock-layout {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .current-time {
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .current-date {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* NAVIGATION */
+        .nav-buttons {
+            position: absolute;
+            top: 45px;
+            left: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 600;
+        }
+
+        .nav-button {
+            background: linear-gradient(145deg, rgba(136, 88, 237, 0.1), rgba(102, 51, 187, 0.1));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(136, 88, 237, 0.3);
+            border-radius: 12px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(136, 88, 237, 0.3);
+        }
+
+        .nav-button svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        /* SESSION CONTROLS */
+        .session-controls {
+            position: absolute;
+            top: 45px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 600;
+        }
+
+        .session-dropdown {
+            background: linear-gradient(135deg, rgba(136, 88, 237, 0.1), rgba(102, 51, 187, 0.05));
+            border: 1px solid rgba(136, 88, 237, 0.3);
+            border-radius: 12px;
+            padding: 10px 20px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            min-width: 150px;
+        }
+
+        .session-dropdown option {
+            background: #2a2a2a;
+        }
+
+        /* TIME RANGE SELECTOR */
+        .time-range-container {
+            position: absolute;
+            top: 90px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            z-index: 500;
+        }
+
+        .time-button {
+            flex: 1;
+            max-width: 120px;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(136, 88, 237, 0.1), rgba(102, 51, 187, 0.05));
+            border: 1px solid rgba(136, 88, 237, 0.3);
+            border-radius: 12px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .time-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(136, 88, 237, 0.3);
+        }
+
+        .time-button.active {
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+            border-color: #8858ed;
+        }
+
+        /* MAIN ANALYTICS CONTAINER */
+        .analytics-container {
+            position: absolute;
+            top: 140px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            display: grid;
+            grid-template-rows: 300px 1fr;
+            gap: 15px;
+        }
+
+        /* CHART SECTION */
+        .chart-section {
+            background: linear-gradient(135deg, rgba(136, 88, 237, 0.1), rgba(102, 51, 187, 0.05));
+            border-radius: 20px;
+            border: 1px solid rgba(136, 88, 237, 0.2);
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            position: relative;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .chart-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .legend-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Chart Canvas */
+        .chart-canvas {
+            width: 100%;
+            height: 220px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chart-placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* STATS GRID */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .stats-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .stats-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .stats-container::-webkit-scrollbar-thumb {
+            background: rgba(136, 88, 237, 0.5);
+            border-radius: 3px;
+        }
+
+        /* STAT CARDS */
+        .stat-card {
+            background: linear-gradient(135deg, rgba(136, 88, 237, 0.1), rgba(102, 51, 187, 0.05));
+            border-radius: 16px;
+            border: 1px solid rgba(136, 88, 237, 0.2);
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(136, 88, 237, 0.3);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .stat-title {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon svg {
+            width: 14px;
+            height: 14px;
+            color: white;
+        }
+
+        .stat-value {
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-unit {
+            color: #8858ed;
+            font-size: 16px;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .change-arrow {
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+        }
+
+        .change-arrow.up {
+            border-bottom: 6px solid #00C310;
+        }
+
+        .change-arrow.down {
+            border-top: 6px solid #FF4444;
+        }
+
+        .change-value {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .change-value.positive {
+            color: #00C310;
+        }
+
+        .change-value.negative {
+            color: #FF4444;
+        }
+
+        /* Mini Charts in Stats */
+        .stat-mini-chart {
+            margin-top: 15px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mini-chart-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(136, 88, 237, 0.4), rgba(136, 88, 237, 0.1));
+            border-radius: 8px 8px 0 0;
+        }
+
+        /* Process Timeline */
+        .timeline-card {
+            grid-column: span 2;
+            background: linear-gradient(135deg, rgba(136, 88, 237, 0.1), rgba(102, 51, 187, 0.05));
+            border-radius: 16px;
+            border: 1px solid rgba(136, 88, 237, 0.2);
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .timeline-header {
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+        }
+
+        .timeline-phases {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .phase-block {
+            flex: 1;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phase-block.completed {
+            background: linear-gradient(90deg, #00C310, #00E515);
+        }
+
+        .phase-block.active {
+            background: linear-gradient(90deg, #8858ed, #6633bb);
+        }
+
+        .phase-labels {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .phase-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Export Button */
+        .export-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+            border: none;
+            border-radius: 24px;
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(136, 88, 237, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .export-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(136, 88, 237, 0.5);
+        }
+
+        /* Alert Badge */
+        .alert-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 12px;
+            height: 12px;
+            background: #FF4444;
+            border-radius: 50%;
+            border: 2px solid #2a2a2a;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <div class="wifi-layout">
+            <div class="wifi-signal">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="12" y1="20" x2="12.01" y2="20" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="wifi-status">CONNECTED</div>
+        </div>
+        <div class="clock-layout">
+            <div class="current-time" id="currentTime">2:45 PM</div>
+            <div class="current-date" id="currentDate">DEC 20, 2024</div>
+        </div>
+    </div>
+
+    <!-- NAVIGATION -->
+    <div class="nav-buttons">
+        <button class="nav-button" onclick="goHome()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9,22 9,12 15,12 15,22"/>
+            </svg>
+        </button>
+        <button class="nav-button" onclick="goToSettings()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1l1.27 3.18a8 8 0 0 1 2.29.82l2.88-1.71 2.84 2.84-1.71 2.88a8 8 0 0 1 .82 2.29L23 12l-3.18 1.27a8 8 0 0 1-.82 2.29l1.71 2.88-2.84 2.84-2.88-1.71a8 8 0 0 1-2.29.82L12 23l-1.27-3.18a8 8 0 0 1-2.29-.82l-2.88 1.71-2.84-2.84 1.71-2.88a8 8 0 0 1-.82-2.29L1 12l3.18-1.27a8 8 0 0 1 .82-2.29L3.29 5.56l2.84-2.84 2.88 1.71a8 8 0 0 1 2.29-.82L12 1z"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- SESSION CONTROLS -->
+    <div class="session-controls">
+        <select class="session-dropdown" id="sessionSelect" onchange="loadSession()">
+            <option value="current">Current Session</option>
+            <option value="session1">Session #1 - Dec 15</option>
+            <option value="session2">Session #2 - Dec 10</option>
+            <option value="session3">Session #3 - Dec 5</option>
+        </select>
+    </div>
+
+    <!-- TIME RANGE SELECTOR -->
+    <div class="time-range-container">
+        <button class="time-button active" onclick="selectTimeRange(this, 'live')">Live</button>
+        <button class="time-button" onclick="selectTimeRange(this, 'hourly')">Hourly</button>
+        <button class="time-button" onclick="selectTimeRange(this, 'daily')">Daily</button>
+        <button class="time-button" onclick="selectTimeRange(this, 'weekly')">Weekly</button>
+        <button class="time-button" onclick="selectTimeRange(this, 'session')">Session</button>
+    </div>
+
+    <!-- MAIN ANALYTICS CONTAINER -->
+    <div class="analytics-container">
+        <!-- CHART SECTION -->
+        <div class="chart-section">
+            <div class="chart-header">
+                <div class="chart-title">VPD & Environmental Trends</div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #8858ed;"></div>
+                        <div class="legend-label">VPD</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #00C310;"></div>
+                        <div class="legend-label">Temperature</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #FFA500;"></div>
+                        <div class="legend-label">Humidity</div>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-canvas">
+                <canvas id="mainChart" style="display: none;"></canvas>
+                <div class="chart-placeholder">Chart Loading...</div>
+            </div>
+        </div>
+
+        <!-- STATS GRID -->
+        <div class="stats-container">
+            <!-- Current VPD -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Current VPD</div>
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value">1.25<span class="stat-unit">kPa</span></div>
+                <div class="stat-change">
+                    <div class="change-arrow up"></div>
+                    <div class="change-value positive">+0.05 from 1hr ago</div>
+                </div>
+                <div class="stat-mini-chart">
+                    <div class="mini-chart-fill" style="height: 60%;"></div>
+                </div>
+            </div>
+
+            <!-- Average Temperature -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Avg Temperature</div>
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value">72<span class="stat-unit">°F</span></div>
+                <div class="stat-change">
+                    <div class="change-arrow down"></div>
+                    <div class="change-value negative">-1°F from 1hr ago</div>
+                </div>
+                <div class="stat-mini-chart">
+                    <div class="mini-chart-fill" style="height: 45%;"></div>
+                </div>
+            </div>
+
+            <!-- Average Humidity -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Avg Humidity</div>
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value">55<span class="stat-unit">%</span></div>
+                <div class="stat-change">
+                    <div class="change-arrow up"></div>
+                    <div class="change-value positive">+2% from 1hr ago</div>
+                </div>
+                <div class="stat-mini-chart">
+                    <div class="mini-chart-fill" style="height: 55%;"></div>
+                </div>
+            </div>
+
+            <!-- Water Activity -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Water Activity</div>
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M8 12h8"/>
+                        </svg>
+                        <div class="alert-badge"></div>
+                    </div>
+                </div>
+                <div class="stat-value">0.58<span class="stat-unit">aW</span></div>
+                <div class="stat-change">
+                    <div class="change-arrow down"></div>
+                    <div class="change-value positive">-0.02 target: 0.60</div>
+                </div>
+                <div class="stat-mini-chart">
+                    <div class="mini-chart-fill" style="height: 70%;"></div>
+                </div>
+            </div>
+
+            <!-- Process Timeline -->
+            <div class="timeline-card">
+                <div class="timeline-header">Process Progress</div>
+                <div class="timeline-phases">
+                    <div class="phase-block completed"></div>
+                    <div class="phase-block completed"></div>
+                    <div class="phase-block completed"></div>
+                    <div class="phase-block completed"></div>
+                    <div class="phase-block active"></div>
+                    <div class="phase-block active"></div>
+                    <div class="phase-block"></div>
+                    <div class="phase-block"></div>
+                </div>
+                <div class="phase-labels">
+                    <div class="phase-label">Day 1</div>
+                    <div class="phase-label">Day 4</div>
+                    <div class="phase-label">Day 8</div>
+                </div>
+                <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+                    <div style="color: white; font-size: 13px; font-weight: 600;">
+                        Drying: <span style="color: #00C310;">Complete</span>
+                    </div>
+                    <div style="color: white; font-size: 13px; font-weight: 600;">
+                        Curing: <span style="color: #8858ed;">Day 2 of 4</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment Runtime -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Equipment Runtime</div>
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                            <rect x="9" y="9" width="6" height="6"/>
+                            <line x1="9" y1="1" x2="9" y2="4"/>
+                            <line x1="15" y1="1" x2="15" y2="4"/>
+                            <line x1="9" y1="20" x2="9" y2="23"/>
+                            <line x1="15" y1="20" x2="15" y2="23"/>
+                            <line x1="20" y1="9" x2="23" y2="9"/>
+                            <line x1="20" y1="14" x2="23" y2="14"/>
+                            <line x1="1" y1="9" x2="4" y2="9"/>
+                            <line x1="1" y1="14" x2="4" y2="14"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value">18.5<span class="stat-unit">hrs</span></div>
+                <div class="stat-change">
+                    <div class="change-value" style="color: rgba(255,255,255,0.6);">Today's total</div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: rgba(255,255,255,0.6); font-size: 10px;">Mini-Split</span>
+                        <span style="color: #00C310; font-size: 10px; font-weight: 600;">12h</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: rgba(255,255,255,0.6); font-size: 10px;">Dehumidifier</span>
+                        <span style="color: #FFA500; font-size: 10px; font-weight: 600;">4.5h</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(255,255,255,0.6); font-size: 10px;">Fans</span>
+                        <span style="color: #8858ed; font-size: 10px; font-weight: 600;">24h</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Summary -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Alerts (24h)</div>
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value">3<span class="stat-unit">alerts</span></div>
+                <div style="margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: rgba(255,255,255,0.6); font-size: 10px;">VPD Range</span>
+                        <span style="color: #FF4444; font-size: 10px; font-weight: 600;">1</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: rgba(255,255,255,0.6); font-size: 10px;">Temperature</span>
+                        <span style="color: #FFA500; font-size: 10px; font-weight: 600;">2</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: rgba(255,255,255,0.6); font-size: 10px;">Equipment</span>
+                        <span style="color: #00C310; font-size: 10px; font-weight: 600;">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPORT BUTTON -->
+    <button class="export-button" onclick="exportReport()">
+        Export Report
+    </button>
+
+    <script>
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+            const dateOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+            
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', timeOptions);
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', dateOptions).toUpperCase();
+        }
+
+        // Time range selection
+        function selectTimeRange(element, range) {
+            document.querySelectorAll('.time-button').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            
+            console.log('Loading data for range:', range);
+            updateChart(range);
+            updateStats(range);
+        }
+
+        // Load session data
+        function loadSession() {
+            const sessionId = document.getElementById('sessionSelect').value;
+            console.log('Loading session:', sessionId);
+            // Load session data and update displays
+        }
+
+        // Update chart based on time range
+        function updateChart(range) {
+            // This would connect to your backend to get chart data
+            console.log('Updating chart for range:', range);
+            
+            // Show placeholder for now
+            document.querySelector('.chart-placeholder').textContent = `Loading ${range} data...`;
+            
+            // Simulate loading
+            setTimeout(() => {
+                document.querySelector('.chart-placeholder').textContent = 'Chart will render here';
+            }, 1000);
+        }
+
+        // Update statistics
+        function updateStats(range) {
+            // This would fetch real data from backend
+            console.log('Updating stats for range:', range);
+            
+            // Simulate real-time updates for live mode
+            if (range === 'live') {
+                setInterval(updateLiveData, 2000);
+            }
+        }
+
+        // Simulate live data updates
+        function updateLiveData() {
+            // Update VPD
+            const vpdElement = document.querySelector('.stat-value');
+            const currentVPD = parseFloat(vpdElement.textContent);
+            const newVPD = (currentVPD + (Math.random() - 0.5) * 0.02).toFixed(2);
+            vpdElement.innerHTML = newVPD + '<span class="stat-unit">kPa</span>';
+            
+            // Update mini chart heights randomly
+            document.querySelectorAll('.mini-chart-fill').forEach(fill => {
+                const currentHeight = parseInt(fill.style.height);
+                const newHeight = Math.max(20, Math.min(80, currentHeight + (Math.random() - 0.5) * 10));
+                fill.style.height = newHeight + '%';
+            });
+        }
+
+        // Navigation
+        function goHome() {
+            window.location.href = '/index.html';
+        }
+
+        function goToSettings() {
+            window.location.href = '/settings.html';
+        }
+
+        // Export functionality
+        function exportReport() {
+            const timeRange = document.querySelector('.time-button.active').textContent;
+            const session = document.getElementById('sessionSelect').value;
+            
+            console.log('Exporting report for:', {
+                timeRange: timeRange,
+                session: session
+            });
+            
+            // This would trigger actual export
+            alert('Report export started...');
+        }
+
+        // Initialize
+        updateTime();
+        setInterval(updateTime, 60000);
+        
+        // Start with live data
+        updateChart('live');
+        updateStats('live');
+    </script>
+</body>
+</html>
