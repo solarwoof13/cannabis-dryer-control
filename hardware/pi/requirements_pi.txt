@@ -13,3 +13,9 @@ flask-cors==4.0.0
 flask-socketio==5.3.4
 python-socketio==5.9.0
 numpy==1.24.3
+
+adafruit-blinka
+redis
+paho-mqtt
+pyyaml
+eventlet
