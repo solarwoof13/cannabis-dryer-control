@@ -46,8 +46,8 @@
 | IN4 | GPIO 23 | Supply Fan | 120V AC | Power ON/OFF | 400 CFM fan |
 | IN5 | GPIO 24 | Return Fan | 120V AC | Power ON/OFF | 400 CFM fan |
 | IN6 | GPIO 25 | Humidifier Fan | 12-24V DC | Control | Low voltage fan |
-| IN7 | - | Spare | - | - | Future use |
-| IN8 | - | Spare | - | - | Future use |
+| IN7 | - | Spare | - | - | Future use | GPIO 20
+| IN8 | - | Spare | - | - | Future use | GPIO 21
 
 ### Relay Board Power Configuration
 - **JD-VCC**: Connect to separate 5V power supply (NOT from Pi)
