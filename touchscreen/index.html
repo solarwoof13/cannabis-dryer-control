@@ -1045,46 +1045,74 @@
             }
         }
 
-        // Simulate sensor updates
+        // Replace the updateSensors function with this one that fetches real data
         function updateSensors() {
-            // Update zone sensors with both temp and humidity
-            for (let i = 1; i <= 4; i++) {
-                const tempEl = document.querySelector(`[data-sensor="zone${i}-temp"]`);
-                const humidEl = document.querySelector(`[data-sensor="zone${i}-humid"]`);
-                
-                if (tempEl) {
-                    const currentTemp = parseFloat(tempEl.textContent);
-                    const newTemp = currentTemp + (Math.random() - 0.5) * 0.5;
-                    tempEl.innerHTML = Math.round(newTemp) + '<span class="sensor-unit">°F</span>';
-                }
-                
-                if (humidEl) {
-                    const currentHumid = parseFloat(humidEl.textContent);
-                    const newHumid = currentHumid + (Math.random() - 0.5) * 1;
-                    humidEl.innerHTML = Math.round(newHumid) + '<span class="sensor-unit-humid">%</span>';
-                }
-            }
+            // Fetch real sensor data from the API
+            fetch('/api/sensors')
+                .then(response => response.json())
+                .then(data => {
+                    // Update Zone 1 (dry_room_1)
+                    if (data.dry_room_1) {
+                        document.querySelector('[data-sensor="zone1-temp"]').innerHTML = 
+                            Math.round(data.dry_room_1.temperature) + '<span class="sensor-unit">°F</span>';
+                        document.querySelector('[data-sensor="zone1-humid"]').innerHTML = 
+                            Math.round(data.dry_room_1.humidity) + '<span class="sensor-unit-humid">%</span>';
+                    }
+                    
+                    // Update Supply (supply_duct)
+                    if (data.supply_duct) {
+                        document.querySelector('[data-sensor="supply"]').innerHTML = 
+                            Math.round(data.supply_duct.temperature) + '<span class="sensor-unit">°F</span>';
+                        document.querySelector('[data-sensor="supply-rh"]').innerHTML = 
+                            Math.round(data.supply_duct.humidity) + '<span class="sensor-unit">%</span>';
+                    }
+                    
+                    // Mark other zones as N/A since no sensors
+                    document.querySelector('[data-sensor="zone2-temp"]').innerHTML = 'N/A';
+                    document.querySelector('[data-sensor="zone3-temp"]').innerHTML = 'N/A';
+                    document.querySelector('[data-sensor="zone4-temp"]').innerHTML = 'N/A';
+                })
+                .catch(error => console.error('Error fetching sensors:', error));
             
-            // Update other sensors
-            document.querySelectorAll('[data-sensor*="supply"], [data-sensor*="return"]').forEach(el => {
-                const currentVal = parseFloat(el.textContent);
-                const unit = el.querySelector('.sensor-unit')?.textContent || '';
-                
-                let newVal = currentVal;
-                if (unit === '°F') {
-                    newVal = currentVal + (Math.random() - 0.5) * 0.5;
-                    el.innerHTML = newVal.toFixed(0) + '<span class="sensor-unit">°F</span>';
-                } else if (unit === '%') {
-                    newVal = currentVal + (Math.random() - 0.5) * 1;
-                    el.innerHTML = newVal.toFixed(0) + '<span class="sensor-unit">%</span>';
-                }
-            });
-            
-            // Simulate VPD changes
-            currentVPD += (Math.random() - 0.5) * 0.02;
-            currentVPD = Math.max(VPD_MIN, Math.min(VPD_MAX, currentVPD));
-            updateVPDDisplay();
+            // Fetch VPD status
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.vpd) {
+                        currentVPD = data.vpd.current;
+                        updateVPDDisplay();
+                        
+                        // Update mode and progress
+                        document.getElementById('modeText').textContent = data.phase.name.toUpperCase();
+                        document.getElementById('modeProgress').textContent = `Day ${data.phase.day} of ${data.phase.total_days}`;
+                    }
+                    
+                    // Update equipment states
+                    if (data.equipment) {
+                        Object.entries(data.equipment).forEach(([name, state]) => {
+                            // Map equipment names to UI elements
+                            const equipMap = {
+                                'dehumidifier': 'dehumidifier',
+                                'humidifier': 'humidifier',
+                                'erv': 'erv',
+                                'supply_fan': 'supply-fan',
+                                'return_fan': 'exhaust-fan'
+                            };
+                            
+                            const equipEl = document.querySelector(`[onclick*="${equipMap[name]}"]`);
+                            if (equipEl) {
+                                equipEl.classList.remove('on', 'idle', 'off');
+                                equipEl.classList.add(state.toLowerCase());
+                                equipEl.querySelector('.equipment-status-text').textContent = state;
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error('Error fetching status:', error));
         }
+
+        // Update every 2 seconds to match your backend
+        setInterval(updateSensors, 2000);
 
         // Touch/swipe handling for VPD adjustment
         let touchStartY = 0;
