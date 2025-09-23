@@ -305,6 +305,24 @@ def manage_config():
         logger.info(f"Configuration update: {data}")
         
         return jsonify({'success': True})
+    
+@app.route('/settings')
+def serve_settings():
+    """Serve the settings page"""
+    gui_path = os.path.join(os.path.dirname(__file__), '..', '..', 'touchscreen')
+    if os.path.exists(os.path.join(gui_path, 'settings.html')):
+        return send_from_directory(gui_path, 'settings.html')
+    else:
+        return "Settings page not found", 404
+
+@app.route('/analytics')
+def serve_analytics():
+    """Serve the analytics page"""
+    gui_path = os.path.join(os.path.dirname(__file__), '..', '..', 'touchscreen')
+    if os.path.exists(os.path.join(gui_path, 'analytics.html')):
+        return send_from_directory(gui_path, 'analytics.html')
+    else:
+        return "Analytics page not found", 404
 
 # WebSocket events for real-time updates
 
