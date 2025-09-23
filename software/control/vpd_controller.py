@@ -111,6 +111,17 @@ class PrecisionVPDController:
             'return_fan': EquipmentState.ON,      # Tied to supply fan
             'erv': EquipmentState.ON              # ON during dry/cure
         }
+
+        # Initialize real sensors
+        try:
+            from software.control.sensor_manager import SensorManager
+            self.sensor_manager = SensorManager()
+            self.hardware_mode = True
+            logger.info("Hardware sensors initialized")
+        except Exception as e:
+            logger.warning(f"No hardware sensors found: {e}, running in simulation mode")
+            self.sensor_manager = None
+            self.hardware_mode = False
         
         # Mini-split temperature setpoint (controlled via IR)
         self.mini_split_setpoint = 68.0  # °F

@@ -108,15 +108,15 @@ if [ "$UPDATE_TYPE" = "code" ] || [ "$UPDATE_TYPE" = "all" ]; then
     echo -e "\n${YELLOW}Applying Pi-specific modifications...${NC}"
     
     # Copy Pi-specific sensor manager if it exists
-    if [ -f "$PI_DIR/pi/sensor_manager.py" ]; then
-        cp "$PI_DIR/pi/sensor_manager.py" "$PI_DIR/software/control/sensor_manager.py"
+    if [ -f "$PI_DIR/hardware/pi/sensor_manager.py" ]; then
+        cp "$PI_DIR/hardware/pi/sensor_manager.py" "$PI_DIR/software/control/sensor_manager.py"
         print_status "Pi sensor_manager.py applied" $?
     fi
     
     # Apply any other Pi-specific files
-    if [ -d "$PI_DIR/pi" ]; then
+    if [ -d "$PI_DIR/hardware/pi" ]; then
         # Copy any other Pi-specific overrides
-        for file in "$PI_DIR/pi"/*.py; do
+        for file in "$PI_DIR/hardware/pi"/*.py; do
             if [ -f "$file" ] && [ "$(basename $file)" != "sensor_manager.py" ]; then
                 filename=$(basename "$file")
                 cp "$file" "$PI_DIR/software/control/$filename" 2>/dev/null
