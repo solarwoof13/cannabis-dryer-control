@@ -7,6 +7,8 @@ import sys
 import threading
 import logging
 import time
+import os
+import platform
 from software.control.vpd_controller import PrecisionVPDController, SimulationMode
 from software.control.api_server import app, socketio, init_controller, start_background_tasks
 
@@ -27,11 +29,20 @@ def main():
     print("Cannabis Dryer Control System")
     print("="*60)
     
+    # Detect if running on Raspberry Pi
+    is_pi = platform.machine() in ['armv7l', 'aarch64'] or os.path.exists('/sys/firmware/devicetree/base/model')
+    
     # Initialize the VPD controller
     controller = PrecisionVPDController()
     
-    # Always run in simulation mode on Mac
-    print("Running in SIMULATION mode")
+    # Check if we have hardware or need simulation
+    if controller.hardware_mode:
+        print("Running with REAL SENSORS")
+        print(f"Found {len(controller.sensor_manager.sensors)} sensors")
+    else:
+        print("Running in SIMULATION mode")
+    
+    # Initialize simulator (runs but doesn't generate fake data if hardware is present)
     simulator = SimulationMode(controller)
     
     # Start simulator in background
@@ -53,12 +64,26 @@ def main():
     # Start background tasks
     start_background_tasks()
     
-    # Start the web server
-    print("-"*60)
+    print("------------------------------------------------------------")
     print("Starting web interface on http://localhost:5000")
     print("Open your browser to see the dashboard")
-    print("-"*60)
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+    print("------------------------------------------------------------")
+    
+    # Start Flask with appropriate settings based on platform
+    if is_pi:
+        # On Raspberry Pi, allow unsafe werkzeug for development
+        # For production, consider using gunicorn or eventlet server
+        socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
+    else:
+        # On development machine (Mac/Windows/Linux desktop)
+        socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+        sys.exit(1)
