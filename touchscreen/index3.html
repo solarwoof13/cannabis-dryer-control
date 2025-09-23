@@ -1,0 +1,2139 @@
+</style>
+</head>
+<body>
+    <!-- TOP BAR -->
+    <div class="box">
+        <div class="top-bar">
+            <div class="wifi-layout">
+                <div class="wifi-signal">
+                    <svg width="22" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="12" y1="22" x2="12" y2="6" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                        <line x1="12" y1="8" x2="8" y2="6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="12" y1="12" x2="7" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="12" y1="16" x2="6" y2="14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="12" y1="8" x2="16" y2="6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="12" y1="12" x2="17" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="12" y1="16" x2="18" y2="14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M9 4 Q12 2 15 4" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                        <path d="M7 2 Q12 0 17 2" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                        <line x1="9" y1="22" x2="15" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="text-wrapper" id="wifi-status">Connected</div>
+            </div>
+            
+            <div class="time-date-group">
+                <div class="current-time" id="current-time">06:24 PM CDT</div>
+                <div class="current-date" id="current-date">08/02/2025</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EQUIPMENT CONTAINER -->
+    <div class="equipment-container">
+        <div class="equipment-title">
+            <svg class="equipment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
+                <path d="M16.5 7.5L12 12l4.5 4.5M7.5 7.5L12 12l-4.5 4.5"/>
+            </svg>
+            <span>Equipment</span>
+        </div>
+        
+        <div class="equipment-grid">
+            <!-- Dehumidifier -->
+            <div class="equipment-item" data-equipment="dehum" onclick="toggleEquipmentStatus('dehum')">
+                <div class="equipment-item-label">Dehumidifier</div>
+                <div class="equipment-status-button status-on">
+                    <span class="equipment-status-text">ON</span>
+                </div>
+            </div>
+            
+            <!-- Humidifier -->
+            <div class="equipment-item" data-equipment="hum" onclick="toggleEquipmentStatus('hum')">
+                <div class="equipment-item-label">Humidifier</div>
+                <div class="equipment-status-button status-idle">
+                    <span class="equipment-status-text">IDLE</span>
+                </div>
+            </div>
+            
+            <!-- ERV -->
+            <div class="equipment-item" data-equipment="erv" onclick="toggleEquipmentStatus('erv')">
+                <div class="equipment-item-label">ERV</div>
+                <div class="equipment-status-button status-on">
+                    <span class="equipment-status-text">ON</span>
+                </div>
+            </div>
+            
+            <!-- Vent Fans -->
+            <div class="equipment-item" data-equipment="vent" onclick="toggleEquipmentStatus('vent')">
+                <div class="equipment-item-label">Vent Fans</div>
+                <div class="equipment-status-button status-on">
+                    <span class="equipment-status-text">ON</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENU BUTTONS -->
+    <div class="menu-buttons-container">
+        <svg width="0" height="0">
+            <defs>
+                <linearGradient id="menuGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#00E515;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#8858ed;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+        </svg>
+        
+        <button class="menu-button home" onclick="goHome()">
+            <svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9,22 9,12 15,12 15,22"/>
+            </svg>
+        </button>
+        
+        <button class="menu-button settings" onclick="openSettings()">
+            <svg class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="m12 1 1.27 3.18a8 8 0 0 1 2.29.82l2.88-1.71a10 10 0 0 1 2.84 2.84l-1.71 2.88a8 8 0 0 1 .82 2.29L23 12l-3.18 1.27a8 8 0 0 1-.82 2.29l1.71 2.88a10 10 0 0 1-2.84 2.84l-2.88-1.71a8 8 0 0 1-2.29.82L12 23l-1.27-3.18a8 8 0 0 1-2.29-.82l-2.88 1.71a10 10 0 0 1-2.84-2.84l1.71-2.88a8 8 0 0 1-.82-2.29L1 12l3.18-1.27a8 8 0 0 1 .82-2.29L3.29 5.56a10 10 0 0 1 2.84-2.84l2.88 1.71a8 8 0 0 1 2.29-.82L12 1z"/>
+            </svg>
+        </button>
+        
+        <button class="menu-button stop" onclick="emergencyStop()">
+            <svg class="stop-icon" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- ROOM SENSORS DASHBOARD -->
+    <div class="sensors-dashboard">
+        <div class="dashboard-content">
+            <div class="sensor-section">
+                <div class="sensor-header">
+                    <svg class="wind-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/>
+                        <path d="M9.6 4.6A2 2 0 1 1 11 8H2"/>
+                        <path d="M12.6 19.4A2 2 0 1 0 14 16H2"/>
+                    </svg>
+                    <h2>Dry Sensors</h2>
+                </div>
+                
+                <div class="sensors-grid">
+                    <div class="sensor-card">
+                        <div class="sensor-label">Spot 1</div>
+                        <div class="sensor-temp" data-sensor="s1" data-type="temp">72°F</div>
+                        <div class="sensor-temp-label">Temperature</div>
+                        <div class="sensor-dew" data-sensor="s1" data-type="dew">45°F</div>
+                        <div class="sensor-dew-label">Dew Point</div>
+                    </div>
+                    
+                    <div class="sensor-card">
+                        <div class="sensor-label">Spot 2</div>
+                        <div class="sensor-temp" data-sensor="s2" data-type="temp">74°F</div>
+                        <div class="sensor-temp-label">Temperature</div>
+                        <div class="sensor-dew" data-sensor="s2" data-type="dew">48°F</div>
+                        <div class="sensor-dew-label">Dew Point</div>
+                    </div>
+                    
+                    <div class="sensor-card">
+                        <div class="sensor-label">Spot 3</div>
+                        <div class="sensor-temp" data-sensor="s3" data-type="temp">71°F</div>
+                        <div class="sensor-temp-label">Temperature</div>
+                        <div class="sensor-dew" data-sensor="s3" data-type="dew">44°F</div>
+                        <div class="sensor-dew-label">Dew Point</div>
+                    </div>
+                    
+                    <div class="sensor-card">
+                        <div class="sensor-label">Spot 4</div>
+                        <div class="sensor-temp" data-sensor="s4" data-type="temp">73°F</div>
+                        <div class="sensor-temp-label">Temperature</div>
+                        <div class="sensor-dew" data-sensor="s4" data-type="dew">46°F</div>
+                        <div class="sensor-dew-label">Dew Point</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM STATUS SECTION -->
+    <div class="status-container">
+        <div class="status-title">STATUS</div>
+        
+        <div class="status-section">
+            <div class="status-header">
+                <div class="status-label">DRY</div>
+                <div class="status-duration" id="dry-duration">0d 0:00</div>
+            </div>
+            <div class="status-bar active" onclick="toggleStatus(this, 'dry')">
+                <div class="status-text">COMPLETE</div>
+            </div>
+        </div>
+        
+        <div class="status-section">
+            <div class="status-header">
+                <div class="status-label">CURE</div>
+                <div class="status-duration" id="cure-duration">1d 2:08</div>
+            </div>
+            <div class="status-bar pending" onclick="updateProgress(this, 'cure')">
+                <div class="status-text">75%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROOM CARDS -->
+    <div class="room-cards-container">
+        <div class="room-card dry-cure">
+            <div class="room-title">
+                <svg class="room-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L13.09 8.26L19 9L13.09 9.74L12 16L10.91 9.74L5 9L10.91 8.26L12 2Z"/>
+                    <path d="M17 14L17.91 17.76L21 18.5L17.91 19.24L17 23L16.09 19.24L13 18.5L16.09 17.76L17 14Z"/>
+                </svg>
+                Dry/Cure Room
+            </div>
+            <div class="room-temp-container">
+                <div class="room-temp">68°F</div>
+                <div class="room-status good">OPTIMAL</div>
+            </div>
+            <div class="room-temp-label">Temperature</div>
+            <div class="reading-grid">
+                <div class="reading-item">VPD<span class="reading-value">0.7 kPa</span></div>
+                <div class="reading-item">RH<span class="reading-value">59%</span></div>
+                <div class="reading-item">Dew Point<span class="reading-value">50°F</span></div>
+                <div class="reading-item">Air Flow<span class="reading-value">Good</span></div>
+            </div>
+        </div>
+        <div class="room-card utility">
+            <div class="room-title">
+                <svg class="room-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
+                    <path d="M2 17L12 22L22 17"/>
+                    <path d="M2 12L12 17L22 12"/>
+                </svg>
+                Utility Room
+            </div>
+            <div class="room-temp-container">
+                <div class="room-temp">70°F</div>
+                <div class="room-status warning">WARNING</div>
+            </div>
+            <div class="room-temp-label">Temperature</div>
+            <div class="reading-grid">
+                <div class="reading-item">VPD<span class="reading-value">0.8 kPa</span></div>
+                <div class="reading-item">RH<span class="reading-value">60%</span></div>
+                <div class="reading-item">Dew Point<span class="reading-value">52°F</span></div>
+                <div class="reading-item">Pressure<span class="reading-value">High</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VPD GAUGE -->
+    <div class="vpd-gauge-container">
+        <div class="vpd-gauge">
+            <div class="gauge-header">
+                <div class="gauge-title" id="modeTitle">CURE MODE</div>
+                <div class="gauge-progress" id="modeProgress">85% COMPLETE</div>
+            </div>
+            
+            <div class="circular-progress">
+                <svg class="progress-ring" width="317" height="317">
+                    <defs>
+                        <linearGradient id="vpdGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#00E515;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#8858ed;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    
+                    <circle class="progress-ring__circle background" 
+                            cx="158.5" cy="158.5" r="148"/>
+                    
+                    <circle class="progress-ring__circle inner-ring" 
+                            cx="158.5" cy="158.5" r="119" 
+                            id="innerRing"/>
+                    
+                    <circle class="progress-ring__circle inner-ring-band" 
+                            cx="158.5" cy="158.5" r="119" 
+                            id="innerRingBand"/>
+                    
+                    <circle class="progress-ring__circle progress" 
+                            cx="158.5" cy="158.5" r="148" 
+                            id="progressCircle"/>
+                </svg>
+                
+                <div class="gauge-content">
+                    <div class="vpd-value" id="vpdValue">1.23 kPa</div>
+                    <button class="set-point-button" onclick="openSetPoint()">
+                        Set Point
+                    </button>
+                </div>
+                
+                <div class="progress-indicator" id="progressIndicator">
+                    <div class="progress-percent" id="progressPercent">85%</div>
+                    <div class="progress-complete">Complete</div>
+                </div>
+                
+                <div class="vpd-range-indicator" id="vpdLowIndicator">
+                    <div class="vpd-range-value" id="vpdLowValue">0.20</div>
+                </div>
+                
+                <div class="vpd-range-indicator" id="vpdHighIndicator">
+                    <div class="vpd-range-value" id="vpdHighValue">2.20</div>
+                </div>
+                
+                <div class="vpd-indicator" id="vpdIndicator"></div>
+                
+                <div class="swipe-hint">Swipe left/right to adjust VPD</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WATER ACTIVITY SLIDER -->
+    <div class="slider-container">
+        <div class="wa-title">Water Activity Estimation</div>
+        <div class="wa-setpoint">Set Point</div>
+        <div class="slider-rail"></div>
+        <div class="slider-thumb" onclick="adjustSlider()"></div>
+        <div class="vertical-line line-1"></div>
+        <div class="vertical-line line-2"></div>
+        <div class="vertical-line line-3"></div>
+        <div class="green-indicator-label">0.78 Now</div>
+        <div class="green-line"></div>
+        <div class="green-diamond"></div>
+        
+        <div class="wa-range-left">0.5 aW</div>
+        <div class="wa-range-center">0.6-0.62</div>
+        <div class="wa-range-right">0.97 aW</div>
+    </div>
+
+    <script>
+        // VPD Gauge variables
+        let currentVPD = 1.23;
+        let currentMode = "CURE MODE";
+        let currentProgress = 85;
+        let vpdSetpoint = 1.2;
+        let vpdSetpointRange = 0.25;
+        
+        const gaugeRange = (vpdSetpointRange * 2) * 4;
+        const VPD_GAUGE_MIN = vpdSetpoint - (gaugeRange / 2);
+        const VPD_GAUGE_MAX = vpdSetpoint + (gaugeRange / 2);
+        const VPD_MIN = 0.4;
+        const VPD_MAX = 2.5;
+
+        // Equipment status data
+        let equipmentStatus = {
+            dehum: 'ON',
+            hum: 'IDLE',
+            erv: 'ON',
+            vent: 'ON'
+        };
+
+        // Sensor data
+        let sensorData = {
+            s1: { temp: 72, dew: 45 },
+            s2: { temp: 74, dew: 48 },
+            s3: { temp: 71, dew: 44 },
+            s4: { temp: 73, dew: 46 }
+        };
+
+        // Menu button functions
+        function goHome() {
+            console.log('Home button clicked');
+            // Add home navigation logic here
+        }
+
+        function openSettings() {
+            window.location.href = './settings.html';
+            // Add settings modal logic here
+        }
+
+        function emergencyStop() {
+            console.log('Emergency stop activated');
+            // Add emergency stop logic here
+        }
+
+        // VPD Gauge functions
+        function getVPDSetpointRange() {
+            return {
+                min: vpdSetpoint - vpdSetpointRange,
+                max: vpdSetpoint + vpdSetpointRange
+            };
+        }
+
+        function formatNumber(num) {
+            return Math.round(num * 100) / 100;
+        }
+
+        function updateVPDDisplay() {
+            document.getElementById('vpdValue').textContent = `${formatNumber(currentVPD)} kPa`;
+            document.getElementById('progressPercent').textContent = `${currentProgress}%`;
+            document.getElementById('modeProgress').textContent = `${currentProgress}% COMPLETE`;
+            document.getElementById('modeTitle').textContent = currentMode;
+            
+            const progressCircle = document.getElementById('progressCircle');
+            const circumference = 2 * Math.PI * 148;
+            const offset = circumference - (currentProgress / 100) * circumference;
+            progressCircle.style.strokeDashoffset = offset;
+            
+            const progressIndicator = document.getElementById('progressIndicator');
+            if (currentProgress >= 100) {
+                progressIndicator.style.display = 'none';
+            } else {
+                progressIndicator.style.display = 'block';
+                const progressAngle = (-90 + (currentProgress / 100) * 360) * Math.PI / 180;
+                const radius = 158.5;
+                const x = Math.cos(progressAngle) * radius;
+                const y = Math.sin(progressAngle) * radius;
+                progressIndicator.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+            }
+            
+            const vpdIndicator = document.getElementById('vpdIndicator');
+            const vpdSetpointRange = getVPDSetpointRange();
+            
+            let vpdPosition = (currentVPD - VPD_GAUGE_MIN) / (VPD_GAUGE_MAX - VPD_GAUGE_MIN);
+            vpdPosition = Math.max(0, Math.min(1, vpdPosition));
+            
+            const rotationDegrees = 90 - (vpdPosition * 180);
+            
+            vpdIndicator.style.transform = `translate(-50%, -50%) rotate(${rotationDegrees}deg)`;
+            
+            if (currentVPD >= vpdSetpointRange.min && currentVPD <= vpdSetpointRange.max) {
+                vpdIndicator.style.background = '#00E515';
+                vpdIndicator.style.boxShadow = '0 0 13px #00E515';
+            } else {
+                vpdIndicator.style.background = '#8858ed';
+                vpdIndicator.style.boxShadow = '0 0 13px #8858ed';
+            }
+            
+            const vpdLowIndicator = document.getElementById('vpdLowIndicator');
+            const vpdHighIndicator = document.getElementById('vpdHighIndicator');
+            
+            const degreesPerUnit = 360 / (2 * Math.PI * 119);
+            const grayStartOffset = 199.49 * degreesPerUnit;
+            const graySpan = 398.98 * degreesPerUnit;
+            
+            const grayStartAngle = (-90 + grayStartOffset) * Math.PI / 180;
+            const adjustedGrayEndAngle = (-90 + grayStartOffset + graySpan - 25) * Math.PI / 180;
+            
+            const lowX = Math.cos(grayStartAngle) * 129;
+            const lowY = Math.sin(grayStartAngle) * 129;
+            vpdLowIndicator.style.transform = `translate(calc(-100% + ${lowX}px), calc(-50% + ${lowY}px))`;
+            
+            const highX = Math.cos(adjustedGrayEndAngle) * 129;
+            const highY = Math.sin(adjustedGrayEndAngle) * 129;
+            vpdHighIndicator.style.transform = `translate(calc(0% + ${highX}px), calc(-50% + ${highY}px))`;
+            
+            document.getElementById('vpdLowValue').textContent = `${formatNumber(VPD_GAUGE_MIN)}`;
+            document.getElementById('vpdHighValue').textContent = `${formatNumber(VPD_GAUGE_MAX)}`;
+        }
+
+        function openSetPoint() {
+            const newVPD = prompt(`Enter new VPD setpoint (${VPD_MIN} - ${VPD_MAX} kPa):`, currentVPD);
+            if (newVPD && !isNaN(newVPD)) {
+                const vpdValue = parseFloat(newVPD);
+                if (vpdValue >= VPD_MIN && vpdValue <= VPD_MAX) {
+                    currentVPD = vpdValue;
+                    updateVPDDisplay();
+                } else {
+                    alert(`VPD must be between ${VPD_MIN} and ${VPD_MAX} kPa`);
+                }
+            }
+        }
+
+        function simulateVPDUpdate() {
+            currentVPD += (Math.random() - 0.5) * 0.05;
+            currentVPD = Math.max(VPD_MIN, Math.min(VPD_MAX, currentVPD));
+            
+            if (Math.random() < 0.1 && currentProgress < 100) {
+                currentProgress = Math.min(100, currentProgress + 1);
+            }
+            
+            updateVPDDisplay();
+        }
+
+        // SMART ALERT SYSTEM
+        let alertState = {
+            vpdStatus: 'normal',
+            temperatureStatus: 'normal',
+            equipmentAlerts: {},
+            lastAlerts: {},
+            alertRanges: {
+                vpd: { min: 1.0, max: 1.5, critical_min: 0.6, critical_max: 2.0 },
+                temperature: { min: 70, max: 76, critical_min: 65, critical_max: 80 }
+            }
+        };
+
+        function initializeAlertSystem() {
+            // Create notification container
+            const notificationContainer = document.createElement('div');
+            notificationContainer.className = 'notification-container';
+            document.body.appendChild(notificationContainer);
+            
+            // Debug: Log initial VPD to console
+            console.log('Initial VPD:', currentVPD);
+            console.log('Alert ranges:', alertState.alertRanges.vpd);
+        }
+
+        function checkAlerts() {
+            checkVPDAlert();
+            checkTemperatureAlert();
+            checkEquipmentAlert();
+        }
+
+        function checkVPDAlert() {
+            const vpdGauge = document.querySelector('.vpd-gauge');
+            let newStatus = 'normal';
+            
+            // Debug logging
+            console.log('Checking VPD:', currentVPD, 'Current status:', alertState.vpdStatus);
+            
+            if (currentVPD < alertState.alertRanges.vpd.critical_min || 
+                currentVPD > alertState.alertRanges.vpd.critical_max) {
+                newStatus = 'critical';
+                console.log('VPD is CRITICAL');
+            } else if (currentVPD < alertState.alertRanges.vpd.min || 
+                       currentVPD > alertState.alertRanges.vpd.max) {
+                newStatus = 'warning';
+                console.log('VPD is WARNING');
+            } else {
+                newStatus = 'optimal';
+                console.log('VPD is OPTIMAL');
+            }
+
+            if (newStatus !== alertState.vpdStatus) {
+                console.log('VPD status changed from', alertState.vpdStatus, 'to', newStatus);
+                // Status changed, update visuals and send notification
+                alertState.vpdStatus = newStatus;
+                
+                // Remove old alert classes
+                vpdGauge.classList.remove('alert-critical', 'alert-warning', 'alert-optimal');
+                
+                // Add new alert class
+                if (newStatus !== 'normal') {
+                    vpdGauge.classList.add(`alert-${newStatus}`);
+                    console.log('Added alert class:', `alert-${newStatus}`);
+                }
+
+                // Send notification
+                if (newStatus === 'critical') {
+                    showNotification('🚨 VPD Critical', `VPD at ${formatNumber(currentVPD)} kPa is outside safe range!`, 'critical');
+                } else if (newStatus === 'warning') {
+                    showNotification('⚠️ VPD Warning', `VPD at ${formatNumber(currentVPD)} kPa is outside optimal range`, 'warning');
+                } else if (newStatus === 'optimal') {
+                    showNotification('✅ VPD Optimal', `VPD back in optimal range: ${formatNumber(currentVPD)} kPa`, 'success');
+                }
+            }
+        }
+
+        function checkTemperatureAlert() {
+            // Check average temperature from dry sensors
+            const temps = Object.values(sensorData).map(s => s.temp);
+            const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
+            
+            let newStatus = 'normal';
+            
+            if (avgTemp < alertState.alertRanges.temperature.critical_min || 
+                avgTemp > alertState.alertRanges.temperature.critical_max) {
+                newStatus = 'critical';
+            } else if (avgTemp < alertState.alertRanges.temperature.min || 
+                       avgTemp > alertState.alertRanges.temperature.max) {
+                newStatus = 'warning';
+            } else {
+                newStatus = 'optimal';
+            }
+
+            if (newStatus !== alertState.temperatureStatus) {
+                alertState.temperatureStatus = newStatus;
+                
+                const sensorsDashboard = document.querySelector('.sensors-dashboard');
+                sensorsDashboard.classList.remove('alert-critical', 'alert-warning', 'alert-optimal');
+                
+                if (newStatus !== 'normal') {
+                    sensorsDashboard.classList.add(`alert-${newStatus}`);
+                }
+
+                if (newStatus === 'critical') {
+                    showNotification('🌡️ Temperature Critical', `Average temperature ${Math.round(avgTemp)}°F is dangerous!`, 'critical');
+                } else if (newStatus === 'warning') {
+                    showNotification('🌡️ Temperature Warning', `Average temperature ${Math.round(avgTemp)}°F is suboptimal`, 'warning');
+                } else if (newStatus === 'optimal') {
+                    showNotification('🌡️ Temperature Good', `Temperature back in optimal range: ${Math.round(avgTemp)}°F`, 'success');
+                }
+            }
+        }
+
+        function checkEquipmentAlert() {
+            // Monitor for equipment status changes
+            Object.keys(equipmentStatus).forEach(equipment => {
+                const currentStatus = equipmentStatus[equipment];
+                const lastStatus = alertState.lastAlerts[equipment];
+                
+                if (lastStatus && lastStatus !== currentStatus) {
+                    let message = '';
+                    let type = 'success';
+                    
+                    if (currentStatus === 'OFF') {
+                        message = `${equipment.toUpperCase()} has been turned OFF`;
+                        type = 'warning';
+                    } else if (currentStatus === 'ON') {
+                        message = `${equipment.toUpperCase()} is now running`;
+                        type = 'success';
+                    } else if (currentStatus === 'IDLE') {
+                        message = `${equipment.toUpperCase()} is now idle`;
+                        type = 'warning';
+                    }
+                    
+                    showNotification('⚙️ Equipment Update', message, type);
+                }
+                
+                alertState.lastAlerts[equipment] = currentStatus;
+            });
+        }
+
+        function showNotification(title, message, type = 'info') {
+            const container = document.querySelector('.notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                critical: '🚨',
+                warning: '⚠️',
+                success: '✅',
+                info: 'ℹ️'
+            };
+            
+            notification.innerHTML = `
+                <span class="notification-icon">${icons[type] || icons.info}</span>
+                <strong>${title}</strong><br>
+                ${message}
+                <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Trigger animation
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            // Auto-remove after 3 seconds instead of 5
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 3000);
+        }
+        function animateValue(element, start, end, duration = 600) {
+            const startTime = performance.now();
+            const difference = end - start;
+            
+            function updateValue(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Use easing function for smooth animation
+                const easeInOutCubic = progress < 0.5 
+                    ? 4 * progress * progress * progress 
+                    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                
+                const currentValue = start + (difference * easeInOutCubic);
+                
+                // Update the display based on element type
+                if (element.dataset.type === 'temp') {
+                    element.textContent = Math.round(currentValue) + '°F';
+                } else if (element.dataset.type === 'dew') {
+                    element.textContent = Math.round(currentValue) + '°F';
+                } else if (element.classList.contains('vpd-value')) {
+                    element.textContent = formatNumber(currentValue) + ' kPa';
+                } else if (element.classList.contains('room-temp')) {
+                    element.textContent = Math.round(currentValue) + '°F';
+                } else if (element.classList.contains('reading-value')) {
+                    if (element.textContent.includes('kPa')) {
+                        element.textContent = formatNumber(currentValue) + ' kPa';
+                    } else if (element.textContent.includes('%')) {
+                        element.textContent = Math.round(currentValue) + '%';
+                    } else if (element.textContent.includes('°F')) {
+                        element.textContent = Math.round(currentValue) + '°F';
+                    } else {
+                        element.textContent = currentValue;
+                    }
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateValue);
+                }
+            }
+            
+            requestAnimationFrame(updateValue);
+        }
+
+        // SWIPE GESTURE FUNCTIONALITY
+        let swipeState = {
+            isSwipeActive: false,
+            startX: 0,
+            startY: 0,
+            startVPD: 0,
+            swipeThreshold: 10,
+            sensitivity: 0.002 // VPD units per pixel
+        };
+
+        function initializeSwipeGestures() {
+            const vpdGauge = document.querySelector('.vpd-gauge');
+            
+            // Touch events
+            vpdGauge.addEventListener('touchstart', handleSwipeStart, { passive: false });
+            vpdGauge.addEventListener('touchmove', handleSwipeMove, { passive: false });
+            vpdGauge.addEventListener('touchend', handleSwipeEnd, { passive: false });
+            
+            // Mouse events for desktop testing
+            vpdGauge.addEventListener('mousedown', handleSwipeStart);
+            vpdGauge.addEventListener('mousemove', handleSwipeMove);
+            vpdGauge.addEventListener('mouseup', handleSwipeEnd);
+            vpdGauge.addEventListener('mouseleave', handleSwipeEnd);
+        }
+
+        function handleSwipeStart(e) {
+            e.preventDefault();
+            
+            const touch = e.touches ? e.touches[0] : e;
+            swipeState.isSwipeActive = true;
+            swipeState.startX = touch.clientX;
+            swipeState.startY = touch.clientY;
+            swipeState.startVPD = currentVPD;
+            
+            // Show swipe feedback
+            showSwipeFeedback('Swipe to adjust VPD');
+        }
+
+        function handleSwipeMove(e) {
+            if (!swipeState.isSwipeActive) return;
+            e.preventDefault();
+            
+            const touch = e.touches ? e.touches[0] : e;
+            const deltaX = touch.clientX - swipeState.startX;
+            const deltaY = touch.clientY - swipeState.startY;
+            
+            // Check if this is a horizontal swipe (not vertical scroll)
+            if (Math.abs(deltaX) > swipeState.swipeThreshold && Math.abs(deltaX) > Math.abs(deltaY)) {
+                // Calculate new VPD based on horizontal movement
+                const vpdDelta = deltaX * swipeState.sensitivity;
+                let newVPD = swipeState.startVPD + vpdDelta;
+                
+                // Clamp to valid range
+                newVPD = Math.max(VPD_MIN, Math.min(VPD_MAX, newVPD));
+                
+                // Update VPD with animation
+                const oldVPD = currentVPD;
+                currentVPD = newVPD;
+                
+                // Animate the value change
+                const vpdElement = document.getElementById('vpdValue');
+                animateValue(vpdElement, oldVPD, currentVPD, 100); // Faster animation for real-time
+                
+                // Update visual indicator immediately
+                updateVPDIndicatorPosition();
+                
+                // Show current value in swipe feedback
+                showSwipeFeedback(`${formatNumber(currentVPD)} kPa`);
+                
+                // CHECK ALERTS WHEN SWIPING - This was missing!
+                checkAlerts();
+            }
+        }
+
+        function handleSwipeEnd(e) {
+            if (!swipeState.isSwipeActive) return;
+            
+            swipeState.isSwipeActive = false;
+            hideSwipeFeedback();
+            
+            // Final update to ensure everything is in sync
+            setTimeout(() => {
+                updateVPDDisplay();
+                // CHECK ALERTS AFTER SWIPE ENDS - This was also missing!
+                checkAlerts();
+            }, 100);
+        }
+
+        function updateVPDIndicatorPosition() {
+            const vpdIndicator = document.getElementById('vpdIndicator');
+            const vpdSetpointRange = getVPDSetpointRange();
+            
+            let vpdPosition = (currentVPD - VPD_GAUGE_MIN) / (VPD_GAUGE_MAX - VPD_GAUGE_MIN);
+            vpdPosition = Math.max(0, Math.min(1, vpdPosition));
+            
+            const rotationDegrees = 90 - (vpdPosition * 180);
+            vpdIndicator.style.transform = `translate(-50%, -50%) rotate(${rotationDegrees}deg)`;
+            
+            // Update indicator color based on range
+            if (currentVPD >= vpdSetpointRange.min && currentVPD <= vpdSetpointRange.max) {
+                vpdIndicator.style.background = '#00E515';
+                vpdIndicator.style.boxShadow = '0 0 13px #00E515';
+            } else {
+                vpdIndicator.style.background = '#8858ed';
+                vpdIndicator.style.boxShadow = '0 0 13px #8858ed';
+            }
+        }
+
+        function showSwipeFeedback(message) {
+            let feedbackElement = document.querySelector('.swipe-feedback');
+            if (!feedbackElement) {
+                feedbackElement = document.createElement('div');
+                feedbackElement.className = 'swipe-feedback';
+                document.querySelector('.vpd-gauge').appendChild(feedbackElement);
+            }
+            
+            feedbackElement.textContent = message;
+            feedbackElement.style.opacity = '1';
+        }
+
+        function hideSwipeFeedback() {
+            const feedbackElement = document.querySelector('.swipe-feedback');
+            if (feedbackElement) {
+                feedbackElement.style.opacity = '0';
+            }
+        }
+        function toggleEquipmentStatus(equipment) {
+            const current = equipmentStatus[equipment];
+            if (current === 'ON') {
+                equipmentStatus[equipment] = 'IDLE';
+            } else if (current === 'IDLE') {
+                equipmentStatus[equipment] = 'OFF';
+            } else {
+                equipmentStatus[equipment] = 'ON';
+            }
+            updateEquipmentDisplay(equipment);
+        }
+
+        // Update equipment display
+        function updateEquipmentDisplay(equipment) {
+            // Update both old and new equipment containers
+            const oldButton = document.querySelector(`[data-equipment="${equipment}"]`);
+            const newButton = document.querySelector(`.equipment-item[data-equipment="${equipment}"]`);
+            
+            if (oldButton) {
+                const statusButton = oldButton.querySelector('.status-button, .equipment-status-button');
+                const statusText = oldButton.querySelector('.status-text, .equipment-status-text');
+                
+                // Remove all status classes
+                statusButton.classList.remove('status-on', 'status-idle', 'status-off');
+                
+                // Add new status class
+                const newStatus = equipmentStatus[equipment].toLowerCase();
+                statusButton.classList.add(`status-${newStatus}`);
+                
+                // Update text
+                statusText.textContent = equipmentStatus[equipment];
+            }
+            
+            if (newButton) {
+                const statusButton = newButton.querySelector('.equipment-status-button');
+                const statusText = newButton.querySelector('.equipment-status-text');
+                
+                // Remove all status classes
+                statusButton.classList.remove('status-on', 'status-idle', 'status-off');
+                
+                // Add new status class
+                const newStatus = equipmentStatus[equipment].toLowerCase();
+                statusButton.classList.add(`status-${newStatus}`);
+                
+                // Update text
+                statusText.textContent = equipmentStatus[equipment];
+            }
+        }
+
+        // Update sensor data
+        function updateSensorData() {
+            Object.keys(sensorData).forEach(sensor => {
+                // Simulate small random changes
+                sensorData[sensor].temp += (Math.random() - 0.5) * 2;
+                sensorData[sensor].dew += (Math.random() - 0.5) * 1;
+                
+                // Update display for modern sensor cards
+                const tempElement = document.querySelector(`[data-sensor="${sensor}"][data-type="temp"]`);
+                const dewElement = document.querySelector(`[data-sensor="${sensor}"][data-type="dew"]`);
+                
+                if (tempElement) tempElement.textContent = Math.round(sensorData[sensor].temp) + '°F';
+                if (dewElement) dewElement.textContent = Math.round(sensorData[sensor].dew) + '°F';
+            });
+        }
+
+        // Toggle status bars
+        function toggleStatus(element, type) {
+            if (element.classList.contains('active')) {
+                element.classList.remove('active');
+                element.classList.add('pending');
+                element.querySelector('.status-text').textContent = '0%';
+            } else {
+                element.classList.remove('pending');
+                element.classList.add('active');
+                element.querySelector('.status-text').textContent = 'COMPLETE';
+            }
+        }
+
+        // Update progress
+        function updateProgress(element, type) {
+            const currentProgress = parseInt(element.querySelector('.status-text').textContent);
+            const newProgress = Math.min(currentProgress + 10, 100);
+            element.querySelector('.status-text').textContent = newProgress + '%';
+            
+            if (newProgress >= 100) {
+                element.classList.remove('pending');
+                element.classList.add('active');
+                element.querySelector('.status-text').textContent = 'COMPLETE';
+            }
+        }
+
+        // Adjust slider
+        function adjustSlider() {
+            // Simulate slider adjustment
+            console.log('Slider adjusted');
+        }
+
+        // Update time and date
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZoneName: 'short'
+            });
+            const dateString = now.toLocaleDateString('en-US', {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric'
+            });
+            
+            document.getElementById('current-time').textContent = timeString;
+            document.getElementById('current-date').textContent = dateString;
+        }
+
+        // Initialize
+        updateTime();
+        updateVPDDisplay();
+        initializeSwipeGestures(); // Initialize swipe functionality
+        initializeAlertSystem(); // Initialize alert system
+        
+        // Initialize equipment status tracking for alerts
+        Object.keys(equipmentStatus).forEach(equipment => {
+            alertState.lastAlerts[equipment] = equipmentStatus[equipment];
+        });
+        
+        setInterval(updateTime, 60000); // Update every minute
+        setInterval(updateSensorData, 5000); // Update sensors every 5 seconds
+        setInterval(simulateVPDUpdate, 2000); // Update VPD every 2 seconds
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            width: 1024px;
+            height: 600px;
+            max-height: 600px;
+            background: #000000;
+            font-family: "Inter", Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            position: relative;
+            border: 3px solid #666666;
+            box-sizing: border-box;
+        }
+
+        /* NORTHERN LIGHTS BACKGROUND EFFECT */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(
+                45deg,
+                rgba(0, 229, 21, 0.03) 0%,
+                rgba(136, 88, 237, 0.04) 25%,
+                rgba(16, 185, 129, 0.03) 50%,
+                rgba(136, 88, 237, 0.04) 75%,
+                rgba(0, 229, 21, 0.03) 100%
+            );
+            background-size: 400% 400%;
+            animation: northernLights 15s ease-in-out infinite;
+            z-index: -1;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background: radial-gradient(
+                ellipse at 30% 20%,
+                rgba(136, 88, 237, 0.02) 0%,
+                transparent 50%
+            ),
+            radial-gradient(
+                ellipse at 70% 10%,
+                rgba(0, 229, 21, 0.02) 0%,
+                transparent 50%
+            ),
+            radial-gradient(
+                ellipse at 50% 30%,
+                rgba(16, 185, 129, 0.03) 0%,
+                transparent 60%
+            );
+            animation: northernLightsShimmer 12s ease-in-out infinite reverse;
+            z-index: -1;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        @keyframes northernLights {
+            0%, 100% {
+                background-position: 0% 50%;
+                opacity: 0.4;
+            }
+            25% {
+                background-position: 100% 0%;
+                opacity: 0.7;
+            }
+            50% {
+                background-position: 100% 100%;
+                opacity: 0.5;
+            }
+            75% {
+                background-position: 0% 100%;
+                opacity: 0.6;
+            }
+        }
+
+        @keyframes northernLightsShimmer {
+            0%, 100% {
+                transform: translateX(0px) scale(1);
+                opacity: 0.3;
+            }
+            33% {
+                transform: translateX(-20px) scale(1.1);
+                opacity: 0.6;
+            }
+            66% {
+                transform: translateX(15px) scale(0.9);
+                opacity: 0.4;
+            }
+        }
+
+
+
+        .box {
+            height: 33px;
+            position: relative;
+            width: 100%;
+        }
+        .box .top-bar {
+            height: 33px;
+            left: 0;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            max-width: 1024px;
+            background: linear-gradient(145deg, #303030 0%, #2a2a2a 100%);
+            color: white;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .box .wifi-layout {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+            margin-left: 10px;
+        }
+
+        .box .time-date-group {
+            display: flex;
+            gap: 10px;
+            white-space: nowrap;
+            margin-right: 10px;
+        }
+
+        .box .current-time,
+        .box .current-date {
+            color: #818181;
+            font-family: "Inter-Bold", Helvetica;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0;
+            line-height: normal;
+            text-shadow: 0px 4px 4px #00000040;
+            white-space: nowrap;
+            margin: 0;
+        }
+        .box .wifi-signal {
+            height: 28px;
+            width: 36px;
+            background-color: #8858ED;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+        }
+        .box .text-wrapper {
+            color: #00c210;
+            font-family: "Inter-Bold", Helvetica;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0;
+            line-height: normal;
+            text-shadow: 0px 4px 4px #00000040;
+            white-space: nowrap;
+            margin: 0;
+        }
+        .box .text-wrapper.disconnected {
+            color: #FF0000;
+        }
+
+        /* MENU BUTTONS STYLES */
+        .menu-buttons-container {
+            position: absolute;
+            top: 40px;
+            left: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 600;
+        }
+        
+        .menu-button {
+            background: linear-gradient(145deg, #303030 0%, #2a2a2a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 4px 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            touch-action: manipulation;
+        }
+        
+        .menu-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(145deg, #3a3a3a 0%, #323232 100%);
+        }
+        
+        .menu-button:active {
+            transform: translateY(0);
+        }
+        
+        .menu-button.home {
+            width: 56px;
+            max-width: 56px;
+            height: auto;
+        }
+        
+        .menu-button.settings {
+            width: 56px;
+            max-width: 56px;
+            height: auto;
+        }
+        
+        .menu-button.stop {
+            width: 73px;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+        
+        .menu-button.stop:hover {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .home-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            min-height: 48px;
+            stroke: #8858ed;
+            flex-shrink: 0;
+        }
+        
+        .settings-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            min-height: 48px;
+            stroke: #8858ed;
+            flex-shrink: 0;
+        }
+        
+        .stop-icon {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+
+        /* ROOM SENSORS DASHBOARD STYLES - MODERN REDESIGN */
+        .sensors-dashboard {
+            position: absolute;
+            top: 105px;
+            left: 10px;
+            width: 301px;
+            height: 350px;
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+            border-radius: 20px;
+            box-shadow: 0px 12px 24px rgba(136, 88, 237, 0.15), 0px 4px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1px 24px 24px 24px;
+            touch-action: manipulation;
+            backdrop-filter: blur(10px);
+        }
+        
+        .dashboard-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .sensor-section {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .sensor-header {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin-top: 8px;
+        }
+        
+        .sensor-header h2 {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: 0.5px;
+            text-shadow: 0px 2px 6px rgba(0, 0, 0, 0.6);
+        }
+        
+        .wind-icon {
+            width: 18px;
+            height: 18px;
+            color: rgba(255, 255, 255, 0.9);
+            opacity: 0.8;
+        }
+        
+        .sensors-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 14px;
+            height: calc(100% - 56px);
+            margin-top: 0px;
+        }
+        
+        .sensor-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-height: 135px;
+        }
+        
+        .sensor-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sensor-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00E515, #10B981);
+            opacity: 0.8;
+        }
+        
+        .sensor-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .sensor-temp {
+            color: #00E515;
+            font-size: 27px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 8px rgba(0, 229, 21, 0.3);
+        }
+        
+        .sensor-temp-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        
+        .sensor-dew {
+            color: #10B981;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        
+        .sensor-dew-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 9px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* BOTTOM STATUS STYLES */
+        .status-container {
+            width: 301px;
+            height: 115px;
+            position: absolute;
+            top: 465px;
+            left: 10px;
+            background: #303030;
+            border-radius: 10px;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            border: 1px solid #333;
+            padding: 8px;
+            box-sizing: border-box;
+            z-index: 1000;
+            touch-action: manipulation;
+        }
+
+        .status-container:active {
+            transform: scale(0.99);
+        }
+
+        .status-title {
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            transform: translateY(-6px);
+        }
+
+        .status-section {
+            margin-bottom: 6px;
+            height: 40px;
+            transform: translateY(-11px);
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            height: 20px;
+        }
+
+        .status-label {
+            color: #8858ED;
+            font-size: 14px;
+            font-weight: 700;
+            text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            transform: translateY(2px);
+        }
+
+        .status-duration {
+            color: #00C310;
+            font-size: 14px;
+            font-weight: 700;
+            text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            transform: translateY(2px);
+        }
+
+        .status-bar {
+            height: 19px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            touch-action: manipulation;
+        }
+
+        .status-bar:active {
+            transform: scale(0.98);
+        }
+
+        .status-bar.active {
+            background: #00C310;
+        }
+
+        .status-bar.pending {
+            background: #BDB8BE;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-bar.pending::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 75%;
+            background: #00C310;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .status-text {
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* VPD GAUGE STYLES */
+        .vpd-gauge-container {
+            position: absolute;
+            top: calc(50% - 50px);
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 370px;
+            height: 370px;
+            z-index: 500;
+        }
+        
+        /* SWIPE GESTURE STYLES */
+        .vpd-gauge {
+            position: relative;
+            width: 370px;
+            height: 370px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: none; /* Prevent default touch behaviors */
+            user-select: none;
+        }
+
+        .swipe-hint {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .vpd-gauge:hover .swipe-hint {
+            opacity: 1;
+        }
+
+        .swipe-feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(136, 88, 237, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 20;
+        }
+        
+        .gauge-header {
+            text-align: center;
+            margin-bottom: 11px;
+            z-index: 10;
+        }
+        
+        .gauge-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        
+        .gauge-progress {
+            font-size: 19px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: 0.3px;
+        }
+        
+        .circular-progress {
+            position: relative;
+            width: 317px;
+            height: 317px;
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+            width: 317px;
+            height: 317px;
+        }
+        
+        .progress-ring__circle {
+            stroke-dasharray: 928.91;
+            stroke-dashoffset: 928.91;
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+            fill: transparent;
+            stroke-width: 11;
+        }
+        
+        .progress-ring__circle.background {
+            stroke: #333333;
+            stroke-dashoffset: 0;
+        }
+        
+        .progress-ring__circle.progress {
+            stroke: url(#vpdGradient);
+        }
+        
+        .progress-ring__circle.vpd-range {
+            stroke: #00E515;
+            stroke-width: 8;
+            stroke-dasharray: 185.78;
+            stroke-dashoffset: 139;
+        }
+        
+        .progress-ring__circle.inner-ring {
+            stroke: #cccccc;
+            stroke-width: 19;
+            stroke-dasharray: 398.98 348;
+            stroke-dashoffset: 199.49;
+            opacity: 0.7;
+            stroke-linecap: round;
+        }
+        
+        .progress-ring__circle.inner-ring-band {
+            stroke: #8858ed;
+            stroke-width: 19;
+            stroke-dasharray: 133.0 614;
+            stroke-dashoffset: 66.5;
+            opacity: 0.9;
+        }
+        
+        .gauge-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+        }
+        
+        .vpd-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 19px;
+            height: 19px;
+            background: #8858ed;
+            border-radius: 50%;
+            box-shadow: 0 0 13px #8858ed;
+            transition: transform 0.3s ease;
+            z-index: 5;
+        }
+        
+        .vpd-indicator::before {
+            content: '';
+            position: absolute;
+            top: -73px;
+            left: 50%;
+            width: 2px;
+            height: 73px;
+            background: #00E515;
+            transform: translateX(-50%);
+            border-radius: 1px;
+            box-shadow: 0 0 11px #00E515;
+            transform-origin: bottom center;
+        }
+        
+        .vpd-value {
+            font-size: 42px;
+            font-weight: 800;
+            color: #8858ed;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(136, 88, 237, 0.5);
+            letter-spacing: -0.5px;
+            white-space: nowrap;
+        }
+        
+        .set-point-button {
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+            border: none;
+            border-radius: 24px;
+            padding: 13px 26px;
+            font-size: 19px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 13px rgba(136, 88, 237, 0.3);
+            letter-spacing: 0.3px;
+            margin-top: 20px;
+        }
+        
+        .set-point-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 16px rgba(136, 88, 237, 0.4);
+        }
+        
+        .set-point-button:active {
+            transform: translateY(0);
+        }
+        
+        .progress-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .progress-percent {
+            font-size: 19px;
+            font-weight: 800;
+            color: white;
+            margin: 0;
+            line-height: 1;
+        }
+        
+        .progress-complete {
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            margin: 2px 0 0 0;
+            line-height: 1;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .vpd-range-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .vpd-range-value {
+            font-size: 15px;
+            font-weight: 800;
+            color: white;
+            margin: 0;
+            line-height: 1;
+        }
+        .slider-container {
+            width: 343px;
+            height: 91px;
+            position: absolute;
+            top: 470px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: transparent;
+        }
+        .wa-title {
+            position: absolute;
+            left: 51px;
+            top: 0px;
+            text-align: center;
+            color: white;
+            font-size: 21px;
+            font-weight: 700;
+            word-wrap: break-word;
+        }
+        .wa-range-left {
+            position: absolute;
+            left: 0px;
+            top: 91px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            word-wrap: break-word;
+        }
+        .wa-range-right {
+            position: absolute;
+            left: 295px;
+            top: 91px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            word-wrap: break-word;
+            white-space: nowrap;
+            text-align: right;
+            width: 48px;
+        }
+        .wa-range-center {
+            position: absolute;
+            left: 99px;
+            top: 91px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            word-wrap: break-word;
+        }
+        .wa-setpoint {
+            position: absolute;
+            left: 98px;
+            top: 40px;
+            color: #8858ED;
+            font-size: 15px;
+            font-weight: 700;
+            text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            word-wrap: break-word;
+        }
+        .slider-rail {
+            width: 343px;
+            height: 31px;
+            left: 0px;
+            top: 58px;
+            position: absolute;
+            background: #BDB8BE;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            border-radius: 10px;
+            z-index: 1;
+        }
+        .slider-thumb {
+            width: 75px;
+            height: 31px;
+            left: 94px;
+            top: 58px;
+            position: absolute;
+            background: #8858ED;
+            border-radius: 10px;
+            backdrop-filter: blur(2px);
+            z-index: 3;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .vertical-line {
+            position: absolute;
+            width: 18px;
+            height: 0px;
+            transform: rotate(90deg);
+            transform-origin: top left;
+            outline: 1px #5B38A6 solid;
+            outline-offset: -0.50px;
+            z-index: 4;
+        }
+        .line-1 { left: 124px; top: 65px; }
+        .line-2 { left: 140px; top: 65px; }
+        .line-3 { width: 23px; left: 132px; top: 62px; }
+        .green-indicator-label {
+            position: absolute;
+            left: 215px;
+            top: 25px;
+            text-align: right;
+            color: #00C310;
+            font-size: 16px;
+            font-weight: 700;
+            word-wrap: break-word;
+            z-index: 5;
+        }
+        .green-line {
+            position: absolute;
+            left: 240px;
+            top: 45px;
+            width: 4px;
+            height: 13px;
+            background: #00C310;
+            z-index: 2;
+        }
+        /* SMOOTH TRANSITIONS AND BREATHING ANIMATIONS */
+        @keyframes breathe {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            50% { 
+                transform: scale(1.02);
+                box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.15);
+            }
+        }
+
+        @keyframes equipment-breathe {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        /* Apply breathing to active equipment */
+        .equipment-status-button.status-on {
+            animation: equipment-breathe 4s ease-in-out infinite;
+        }
+
+        /* Smooth transitions for all dynamic values */
+        .sensor-temp, .sensor-dew, .vpd-value, .room-temp, .reading-value {
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Enhanced hover effects with smooth transitions */
+        .sensor-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            background: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Smooth equipment status transitions */
+        .equipment-status-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .equipment-status-button:hover {
+            transform: translateY(-1px) scale(1.05);
+        }
+
+        /* Enhanced menu button animations */
+        .menu-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .menu-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+        .equipment-container {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            width: 301px;
+            height: 140px;
+            background: linear-gradient(135deg, #8858ed, #6633bb);
+            border-radius: 15px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.4), 0px 2px 4px rgba(0, 0, 0, 0.2), inset 0px 1px 0px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            touch-action: manipulation;
+            z-index: 1000;
+        }
+        
+        .equipment-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            text-shadow: 0px 2px 6px rgba(0, 0, 0, 0.6);
+            margin-bottom: 8px;
+            margin-top: -10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .equipment-icon {
+            width: 18px;
+            height: 18px;
+            opacity: 0.8;
+        }
+        
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .equipment-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        
+        .equipment-item-label {
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+        
+        .equipment-status-button {
+            width: 70px;
+            height: 28px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+        
+        .equipment-status-button:active {
+            transform: scale(0.95);
+        }
+        
+        .equipment-status-button.status-on { 
+            background-color: #00C310; 
+        }
+        .equipment-status-button.status-idle { 
+            background-color: #C39900; 
+        }
+        .equipment-status-button.status-off { 
+            background-color: #FF4444; 
+        }
+        
+        .equipment-status-text {
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+        }
+
+        /* ROOM CARDS STYLES */
+        .room-cards-container {
+            position: absolute;
+            bottom: 15px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 301px;
+        }
+        .room-card {
+            width: 301px;
+            background: linear-gradient(145deg, #303030 0%, #2a2a2a 100%);
+            border-radius: 15px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.4), 0px 2px 4px rgba(0, 0, 0, 0.2), inset 0px 1px 0px rgba(255, 255, 255, 0.1);
+            position: relative;
+            padding: 16px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            touch-action: manipulation;
+        }
+        .room-card-content {
+            width: 100%;
+            height: 100%;
+            backdrop-filter: blur(10px);
+        }
+        .room-card:active {
+            transform: translateY(1px);
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .room-card.dry-cure {
+            height: 190px;
+        }
+        .room-card.utility {
+            height: 190px;
+        }
+        .room-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            text-shadow: 0px 2px 6px rgba(0, 0, 0, 0.6);
+            margin-bottom: 8px;
+            margin-top: -10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .room-icon {
+            width: 18px;
+            height: 18px;
+            opacity: 0.8;
+        }
+        .room-temp-container {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 4px;
+            margin-top: -6px;
+        }
+        .room-temp {
+            font-size: 36px;
+            font-weight: 800;
+            text-shadow: 0px 3px 8px rgba(0, 0, 0, 0.6);
+            line-height: 1;
+            letter-spacing: -0.5px;
+            color: #00E515;
+        }
+        .room-temp-label {
+            font-size: 14px;
+            font-weight: 600;
+            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.4);
+            margin-bottom: 28px;
+            margin-top: -22px;
+            opacity: 0.9;
+            color: #00E515;
+        }
+        .room-status {
+            margin-top: 10px;
+            margin-left: 100px;
+            width: 140px;
+            height: 44px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8);
+            box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.4), inset 0px 1px 0px rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            z-index: 2;
+            background: none;
+        }
+        .room-readings {
+            font-size: 13px;
+            font-weight: 600;
+            text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.5);
+            margin-bottom: 4px;
+            line-height: 1.3;
+            opacity: 0.95;
+            color: #00E515;
+        }
+        .reading-grid {
+            position: absolute;
+            bottom: 4px;
+            left: 16px;
+            right: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .reading-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        .reading-value {
+            font-weight: 700;
+            font-size: 20px;
+            color: #00E515;
+        }
+        /* Utility Room - Purple/Orange Theme */
+        .utility .room-temp {
+            color: #A56EFF;
+        }
+        .utility .room-temp-label {
+            color: #A56EFF;
+        }
+        .utility .room-readings {
+            color: #A56EFF;
+        }
+        .utility .reading-item {
+            background: rgba(165, 110, 255, 0.1);
+            border-color: rgba(165, 110, 255, 0.2);
+            color: white;
+        }
+        .utility .reading-value {
+            color: #A56EFF;
+            font-size: 20px;
+        }
+        .utility .room-status.warning {
+            background: linear-gradient(135deg, #FF8C00 0%, #FFA500 100%);
+            box-shadow: 0px 3px 8px rgba(255, 140, 0, 0.4);
+        }
+        .dry-cure .room-status.good {
+            background: linear-gradient(135deg, #00C310 0%, #00E515 100%);
+            box-shadow: 0px 3px 8px rgba(0, 195, 16, 0.4);
+        }
+        /* Status indicator animations */
+        .room-status {
+            position: relative;
+            overflow: hidden;
+        }
+        .room-status::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        .room-card:active .room-status::before {
+            left: 100%;
+        }

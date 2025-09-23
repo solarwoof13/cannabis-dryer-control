@@ -1,0 +1,254 @@
+# Cannabis Dryer Control System Configuration
+# /home/mikejames/cannabis-dryer/config.yaml
+
+# System Configuration
+system:
+  name: "Cannabis Drying System"
+  location: "40ft Container"
+  log_level: "INFO"
+  log_file: "/home/mikejames/cannabis_dryer.log"
+  database: "/home/mikejames/cannabis_dryer.db"
+
+# Power Supply Configuration
+power:
+  # Relay board power source
+  relay_power_source: "pi"  # Change to "separate" when external supply installed
+  
+  # SparkFun QwiicBus power configuration
+  # QwiicBus accepts 3.3V-5V and regulates to 3.3V internally
+  qwiic_power:
+    input_voltage: 5.0  # Using Pi's 5V pin (Pin 2 or 4)
+    bus_voltage: 3.3  # QwiicBus regulates to 3.3V for sensors
+    source: "pi_5v"  # Currently using Pi's 5V rail
+    current_per_sensor: 1  # mA per sensor
+    cable_boost_current: 10  # Additional mA for long cables
+    total_sensors: 6
+    bus_overhead: 50  # mA for QwiicBus regulators/buffers
+    
+  # Safety limits based on power source
+  max_simultaneous_relays:
+    pi: 4  # Conservative limit when powered from Pi
+    separate: 8  # All relays can be on with separate supply
+  
+  # Delay between relay activations (seconds)
+  relay_startup_delay: 0.5
+  
+  # Current budget (mA)
+  relay_coil_current: 80  # Per relay coil
+  pi_5v_available: 1500  # Total available from Pi 5V rail
+  pi_5v_used:
+    relay_board_idle: 50
+    qwiic_bus: 116  # 6 sensors + cable overhead + bus regulators
+    # Remaining: ~1334mA for relay coils (up to 16 relays)
+
+# GPIO Pin Assignments (BCM numbering)
+gpio:
+  relays:
+    DEHUMIDIFIER: 17
+    HUMIDIFIER_SOLENOID: 27
+    ERV: 22
+    SUPPLY_FAN: 23
+    RETURN_FAN: 24
+    HUMIDIFIER_FAN: 25
+    SPARE_1: 20
+    SPARE_2: 21
+  
+  # Active LOW logic (fail-safe)
+  relay_on_state: 0  # GPIO.LOW
+  relay_off_state: 1  # GPIO.HIGH
+
+# I2C Sensor Configuration
+sensors:
+  bus: 1
+  # SparkFun Qwiic sensor addresses
+  addresses:
+    dry_zone_1:
+      address: 0x44  # Updated address
+      cable_length: "20ft"
+      location: "Front left"
+    dry_zone_2:
+      address: 0x39
+      cable_length: "25ft"
+      location: "Front right"
+    dry_zone_3:
+      address: 0x3A
+      cable_length: "30ft"
+      location: "Back left"
+    dry_zone_4:
+      address: 0x3B
+      cable_length: "35ft"
+      location: "Back right"
+    air_room:
+      address: 0x3C
+      cable_length: "5ft"
+      location: "Equipment room"
+    supply_duct:
+      address: 0x45  # Updated address
+      cable_length: "10ft"
+      location: "After conditioning"
+  
+  # Sensor reading parameters
+  read_retries: 3
+  retry_delay: 0.1  # seconds
+
+# VPD Control Parameters
+vpd_control:
+  # Target VPD values (kPa) for each day
+  drying_phase:
+    day_1: 0.8
+    day_2: 0.9
+    day_3: 1.0
+    day_4: 1.1
+  
+  curing_phase:
+    day_5: 0.7
+    day_6: 0.65
+    day_7: 0.6
+    day_8: 0.55
+  
+  # Control deadbands
+  deadbands:
+    vpd: 0.05  # kPa
+    temperature: 1.0  # °F
+    humidity: 2.0  # %
+  
+  # Linear ramping between days
+  enable_linear_ramping: true
+  ramp_update_interval: 3600  # seconds (1 hour)
+
+# Equipment Control Parameters
+equipment:
+  # Minimum time between state changes (seconds)
+  min_cycle_time: 300  # 5 minutes
+  
+  # Equipment-specific settings
+  dehumidifier:
+    max_runtime: 3600  # Maximum continuous runtime (seconds)
+    cooldown_time: 300  # Minimum off time after max runtime
+  
+  humidifier:
+    max_runtime: 1800  # Maximum continuous runtime (seconds)
+    cooldown_time: 180  # Minimum off time
+  
+  erv:
+    min_runtime: 600  # Minimum runtime when activated
+    humidity_threshold_on: 65  # Turn on above this RH%
+    humidity_threshold_off: 55  # Turn off below this RH%
+  
+  fans:
+    always_on_during_process: true
+    circulation_mode: "continuous"  # Options: continuous, interval
+    interval_on_time: 900  # seconds (if using interval mode)
+    interval_off_time: 300  # seconds
+
+# Water Activity Targets
+water_activity:
+  initial: 0.65
+  final: 0.60
+  tolerance: 0.02
+  
+  # Estimated times to reach targets
+  drying_target_hours: 96  # 4 days
+  curing_target_hours: 96  # 4 days
+
+# Alarm Thresholds
+alarms:
+  temperature:
+    high: 75  # °F
+    low: 55   # °F
+    critical_high: 80
+    critical_low: 50
+  
+  humidity:
+    high: 70  # %
+    low: 40   # %
+    critical_high: 75
+    critical_low: 35
+  
+  vpd:
+    max_deviation: 0.2  # kPa from target
+    critical_deviation: 0.3
+  
+  sensor:
+    max_failures: 3  # Max consecutive read failures before alarm
+    timeout: 30  # seconds without reading
+
+# Network Configuration
+network:
+  web_port: 5000
+  websocket_enabled: true
+  cors_origins: "*"  # Restrict in production
+  
+  mqtt:
+    enabled: false  # Set to true to enable MQTT
+    broker: "localhost"
+    port: 1883
+    username: ""
+    password: ""
+    topic_prefix: "cannabis_dryer"
+  
+  security:
+    enable_https: false  # Set to true in production
+    cert_file: ""
+    key_file: ""
+
+# Data Logging
+logging:
+  sensor_interval: 10  # seconds between sensor logs
+  state_interval: 60  # seconds between full state logs
+  
+  retention:
+    sensor_data_days: 90
+    equipment_logs_days: 30
+    alarm_logs_days: 365
+  
+  export:
+    enable_csv_export: true
+    export_path: "/home/mikejames/cannabis_dryer_exports"
+
+# Mini-Split Control (Future)
+minisplit:
+  control_method: "none"  # Options: none, ir, serial, modbus
+  
+  ir_control:
+    gpio_pin: 18
+    protocol: "mitsubishi"  # Brand-specific protocol
+  
+  temperature_setpoint: 65  # °F
+  mode: "cool"  # Options: cool, dry, fan
+  fan_speed: "auto"  # Options: auto, low, medium, high
+
+# System Maintenance
+maintenance:
+  filter_change_hours: 720  # 30 days
+  calibration_interval_days: 30
+  
+  reminders:
+    - "Check water level in humidifier"
+    - "Clean intake filters"
+    - "Verify sensor readings"
+    - "Check for mold or pests"
+
+# Process Profiles (Presets)
+profiles:
+  standard:
+    name: "Standard 8-Day"
+    description: "4 days drying, 4 days curing"
+    vpd_curve: "linear"
+    
+  fast:
+    name: "Fast 6-Day"
+    description: "3 days drying, 3 days curing"
+    vpd_curve: "aggressive"
+    
+  gentle:
+    name: "Gentle 10-Day"
+    description: "5 days drying, 5 days curing"
+    vpd_curve: "conservative"
+
+# Debug Settings
+debug:
+  simulate_sensors: false  # Set to true for testing without hardware
+  simulate_relays: false
+  verbose_logging: false
+  save_raw_readings: false
