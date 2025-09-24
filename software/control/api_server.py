@@ -350,7 +350,7 @@ def broadcast_updates():
         time.sleep(5)  # Broadcast every 5 seconds
         if controller:
             status = controller.get_system_status()
-            socketio.emit('status_update', status, broadcast=True)
+            socketio.emit('status_update', status, to='/')
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])
