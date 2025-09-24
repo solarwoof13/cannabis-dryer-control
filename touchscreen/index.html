@@ -715,29 +715,29 @@
                     <div class="sensor-item">
                         <div class="sensor-label">Zone 1</div>
                         <div class="sensor-values-row">
-                            <div class="sensor-value" data-sensor="zone1-temp">72<span class="sensor-unit">°F</span></div>
-                            <div class="sensor-humidity" data-sensor="zone1-humid">55<span class="sensor-unit-humid">%</span></div>
+                            <div class="sensor-value" data-sensor="zone1-temp"><span class="sensor-unit">°F</span></div>
+                            <div class="sensor-humidity" data-sensor="zone1-humid"><span class="sensor-unit-humid">%</span></div>
                         </div>
                     </div>
                     <div class="sensor-item">
                         <div class="sensor-label">Zone 2</div>
                         <div class="sensor-values-row">
-                            <div class="sensor-value" data-sensor="zone2-temp">73<span class="sensor-unit">°F</span></div>
-                            <div class="sensor-humidity" data-sensor="zone2-humid">54<span class="sensor-unit-humid">%</span></div>
+                            <div class="sensor-value" data-sensor="zone2-temp"><span class="sensor-unit">°F</span></div>
+                            <div class="sensor-humidity" data-sensor="zone2-humid"><span class="sensor-unit-humid">%</span></div>
                         </div>
                     </div>
                     <div class="sensor-item">
                         <div class="sensor-label">Zone 3</div>
                         <div class="sensor-values-row">
-                            <div class="sensor-value" data-sensor="zone3-temp">71<span class="sensor-unit">°F</span></div>
-                            <div class="sensor-humidity" data-sensor="zone3-humid">56<span class="sensor-unit-humid">%</span></div>
+                            <div class="sensor-value" data-sensor="zone3-temp"><span class="sensor-unit">°F</span></div>
+                            <div class="sensor-humidity" data-sensor="zone3-humid"><span class="sensor-unit-humid">%</span></div>
                         </div>
                     </div>
                     <div class="sensor-item">
                         <div class="sensor-label">Zone 4</div>
                         <div class="sensor-values-row">
-                            <div class="sensor-value" data-sensor="zone4-temp">72<span class="sensor-unit">°F</span></div>
-                            <div class="sensor-humidity" data-sensor="zone4-humid">55<span class="sensor-unit-humid">%</span></div>
+                            <div class="sensor-value" data-sensor="zone4-temp"><span class="sensor-unit">°F</span></div>
+                            <div class="sensor-humidity" data-sensor="zone4-humid"><span class="sensor-unit-humid">%</span></div>
                         </div>
                     </div>
                 </div>
@@ -751,19 +751,19 @@
                 <div class="sensor-grid">
                     <div class="sensor-item">
                         <div class="sensor-label">Supply</div>
-                        <div class="sensor-value" data-sensor="supply">70<span class="sensor-unit">°F</span></div>
+                        <div class="sensor-value" data-sensor="supply"><span class="sensor-unit">°F</span></div>
                     </div>
                     <div class="sensor-item">
                         <div class="sensor-label">Return</div>
-                        <div class="sensor-value" data-sensor="return">73<span class="sensor-unit">°F</span></div>
+                        <div class="sensor-value" data-sensor="return"><span class="sensor-unit">°F</span></div>
                     </div>
                     <div class="sensor-item">
                         <div class="sensor-label">Supply RH</div>
-                        <div class="sensor-value" data-sensor="supply-rh">52<span class="sensor-unit">%</span></div>
+                        <div class="sensor-value" data-sensor="supply-rh"><span class="sensor-unit">%</span></div>
                     </div>
                     <div class="sensor-item">
                         <div class="sensor-label">Return RH</div>
-                        <div class="sensor-value" data-sensor="return-rh">58<span class="sensor-unit">%</span></div>
+                        <div class="sensor-value" data-sensor="return-rh"><span class="sensor-unit">%</span></div>
                     </div>
                 </div>
             </div>
@@ -774,19 +774,19 @@
                 </div>
                 <div class="summary-grid">
                     <div class="summary-item">
-                        <div class="summary-value">72°F</div>
+                        <div class="summary-value">--°F</div>
                         <div class="summary-label">Temperature</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-value">55%</div>
+                        <div class="summary-value">--%</div>
                         <div class="summary-label">Humidity</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-value">54°F</div>
+                        <div class="summary-value">--°F</div>
                         <div class="summary-label">Dew Point</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-value">0.58</div>
+                        <div class="summary-value">--</div>
                         <div class="summary-label">Water Activity</div>
                     </div>
                 </div>
@@ -802,7 +802,7 @@
                 </div>
 
                 <div class="vpd-display">
-                    <div class="vpd-large-value" id="vpdValue">1.25</div>
+                    <div class="vpd-large-value" id="vpdValue">--</div>
                     <div class="vpd-label">VPD (kPa)</div>
                 </div>
 
@@ -933,7 +933,7 @@
         </div>
     </div>
 
-    <script>
+   <script>
         // Constants
         const VPD_MIN = 0.6;
         const VPD_MAX = 2.0;
@@ -956,25 +956,25 @@
             const vpdValue = document.getElementById('vpdValue');
             const vpdIndicator = document.getElementById('vpdIndicator');
             
-            vpdValue.textContent = currentVPD.toFixed(2);
+            if (vpdValue) {
+                vpdValue.textContent = currentVPD.toFixed(2);
+                
+                // Update color based on range
+                if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
+                    vpdValue.style.background = 'linear-gradient(135deg, #00C310, #00E515)';
+                } else if (currentVPD >= 1.0 && currentVPD <= 1.5) {
+                    vpdValue.style.background = 'linear-gradient(135deg, #FFA500, #FFD700)';
+                } else {
+                    vpdValue.style.background = 'linear-gradient(135deg, #8858ed, #6633bb)';
+                }
+                vpdValue.style.webkitBackgroundClip = 'text';
+                vpdValue.style.webkitTextFillColor = 'transparent';
+            }
             
-            // Update indicator position (0.6 to 2.0 kPa range)
-            const position = ((currentVPD - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
-            vpdIndicator.style.left = `${Math.max(0, Math.min(100, position))}%`;
-            
-            // Update color based on range
-            if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
-                vpdValue.style.background = 'linear-gradient(135deg, #00C310, #00E515)';
-                vpdValue.style.webkitBackgroundClip = 'text';
-                vpdValue.style.webkitTextFillColor = 'transparent';
-            } else if (currentVPD >= 1.0 && currentVPD <= 1.5) {
-                vpdValue.style.background = 'linear-gradient(135deg, #FFA500, #FFD700)';
-                vpdValue.style.webkitBackgroundClip = 'text';
-                vpdValue.style.webkitTextFillColor = 'transparent';
-            } else {
-                vpdValue.style.background = 'linear-gradient(135deg, #8858ed, #6633bb)';
-                vpdValue.style.webkitBackgroundClip = 'text';
-                vpdValue.style.webkitTextFillColor = 'transparent';
+            if (vpdIndicator) {
+                // Update indicator position (0.6 to 2.0 kPa range)
+                const position = ((currentVPD - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
+                vpdIndicator.style.left = `${Math.max(0, Math.min(100, position))}%`;
             }
         }
 
@@ -998,11 +998,12 @@
                 document.querySelectorAll('.equipment-item').forEach(item => {
                     item.classList.remove('on', 'idle');
                     item.classList.add('off');
-                    item.querySelector('.equipment-status-text').textContent = 'OFF';
+                    const statusText = item.querySelector('.equipment-status-text');
+                    if (statusText) statusText.textContent = 'OFF';
                 });
                 
-                // Call backend API
-                fetch('http://localhost:8080/api/emergency-stop', { 
+                // Call backend API - fixed port number
+                fetch('/api/emergency-stop', { 
                     method: 'POST' 
                 }).catch(err => console.error('Emergency stop API error:', err));
             }
@@ -1014,7 +1015,6 @@
             if (newSetpoint && !isNaN(newSetpoint)) {
                 const value = parseFloat(newSetpoint);
                 if (value >= VPD_MIN && value <= VPD_MAX) {
-                    // Send to backend API
                     fetch('/api/setpoint', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
@@ -1052,75 +1052,121 @@
             element.classList.add(nextState);
             
             const statusText = element.querySelector('.equipment-status-text');
-            if (equipment.includes('fan') && nextState === 'on') {
-                statusText.textContent = '60%';
-            } else {
-                statusText.textContent = nextState.toUpperCase();
+            if (statusText) {
+                if (equipment.includes('fan') && nextState === 'on') {
+                    statusText.textContent = '60%';
+                } else {
+                    statusText.textContent = nextState.toUpperCase();
+                }
             }
         }
 
-        // Replace the updateSensors function with this one that fetches real data
-        function updateSensors() {
-            // Fetch real sensor data from the API
+        // MAIN UPDATE FUNCTION - Combines all updates
+        function updateDashboard() {
+            // Fetch sensor data
             fetch('/api/sensors')
                 .then(response => response.json())
                 .then(data => {
-                    // Update Zone 1 (dry_room_1)
-                    if (data.dry_room_1) {
+                    console.log('Sensor data:', data);
+                    
+                    // Update Zone 1 (REAL DATA)
+                    if (data.dry_room_1 && data.dry_room_1.temperature !== null) {
                         document.querySelector('[data-sensor="zone1-temp"]').innerHTML = 
                             Math.round(data.dry_room_1.temperature) + '<span class="sensor-unit">°F</span>';
                         document.querySelector('[data-sensor="zone1-humid"]').innerHTML = 
                             Math.round(data.dry_room_1.humidity) + '<span class="sensor-unit-humid">%</span>';
                     }
                     
-                    // Update Supply (supply_duct)
-                    if (data.supply_duct) {
+                    // Update Supply (REAL DATA)
+                    if (data.supply_duct && data.supply_duct.temperature !== null) {
                         document.querySelector('[data-sensor="supply"]').innerHTML = 
                             Math.round(data.supply_duct.temperature) + '<span class="sensor-unit">°F</span>';
-                        document.querySelector('[data-sensor="supply-rh"]').innerHTML = 
-                            Math.round(data.supply_duct.humidity) + '<span class="sensor-unit">%</span>';
+                        const supplyRH = document.querySelector('[data-sensor="supply-rh"]');
+                        if (supplyRH) {
+                            supplyRH.innerHTML = Math.round(data.supply_duct.humidity) + '<span class="sensor-unit">%</span>';
+                        }
                     }
                     
-                    // Mark other zones as N/A since no sensors
-                    document.querySelector('[data-sensor="zone2-temp"]').innerHTML = 'N/A';
-                    document.querySelector('[data-sensor="zone2-humid"]').innerHTML = 'N/A';
-                    document.querySelector('[data-sensor="zone3-temp"]').innerHTML = 'N/A';
-                    document.querySelector('[data-sensor="zone3-humid"]').innerHTML = 'N/A';
-                    document.querySelector('[data-sensor="zone4-temp"]').innerHTML = 'N/A';
-                    document.querySelector('[data-sensor="zone4-humid"]').innerHTML = 'N/A';
+                    // Calculate room averages (only from real sensors)
+                    let temps = [];
+                    let humids = [];
+                    
+                    if (data.dry_room_1 && data.dry_room_1.temperature !== null) {
+                        temps.push(data.dry_room_1.temperature);
+                        humids.push(data.dry_room_1.humidity);
+                    }
+                    
+                    if (temps.length > 0) {
+                        const avgTemp = temps.reduce((a,b) => a+b, 0) / temps.length;
+                        const avgHumid = humids.reduce((a,b) => a+b, 0) / humids.length;
+                        
+                        const avgTempEl = document.getElementById('avg-temp');
+                        if (avgTempEl) avgTempEl.textContent = Math.round(avgTemp) + '°F';
+                        
+                        const avgHumidEl = document.getElementById('avg-humid');
+                        if (avgHumidEl) avgHumidEl.textContent = Math.round(avgHumid) + '%';
+                    }
                 })
                 .catch(error => console.error('Error fetching sensors:', error));
             
-            // Fetch VPD status
+            // Fetch system status
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.vpd) {
-                        currentVPD = data.vpd.current;
+                    // Update VPD
+                    if (data.vpd_current !== undefined) {
+                        currentVPD = data.vpd_current;
                         updateVPDDisplay();
                         
-                        // Update mode and progress
-                        document.getElementById('modeText').textContent = data.phase.name.toUpperCase();
-                        document.getElementById('modeProgress').textContent = `Day ${data.phase.day} of ${data.phase.total_days}`;
+                        const vpdEl = document.getElementById('vpd-current');
+                        if (vpdEl) vpdEl.textContent = currentVPD.toFixed(2) + ' kPa';
                     }
                     
-                    // Update equipment states
+                    // Update dew point
+                    if (data.dew_point !== undefined) {
+                        const dewEl = document.getElementById('avg-dewpoint');
+                        if (dewEl) dewEl.textContent = Math.round(data.dew_point) + '°F';
+                    }
+                    
+                    // Update water activity
+                    if (data.water_activity_estimate !== undefined) {
+                        const waterEl = document.getElementById('water-activity');
+                        if (waterEl) waterEl.textContent = data.water_activity_estimate.toFixed(3);
+                    }
+                    
+                    // Update phase/mode
+                    if (data.phase) {
+                        const modeEl = document.getElementById('modeText');
+                        if (modeEl) modeEl.textContent = data.phase.replace(/_/g, ' ').toUpperCase();
+                        
+                        const progressEl = document.getElementById('modeProgress');
+                        if (progressEl && data.progress !== undefined) {
+                            progressEl.textContent = `Progress: ${data.progress.toFixed(1)}%`;
+                        }
+                    }
+                    
+                    // Update equipment status
                     if (data.equipment) {
-                        Object.entries(data.equipment).forEach(([name, state]) => {
-                            // Map equipment names to UI elements
-                            const equipMap = {
-                                'dehumidifier': 'dehumidifier',
-                                'humidifier': 'humidifier',
-                                'erv': 'erv',
-                                'supply_fan': 'supply-fan',
-                                'return_fan': 'exhaust-fan'
-                            };
-                            
-                            const equipEl = document.querySelector(`[onclick*="${equipMap[name]}"]`);
-                            if (equipEl) {
-                                equipEl.classList.remove('on', 'idle', 'off');
-                                equipEl.classList.add(state.toLowerCase());
-                                equipEl.querySelector('.equipment-status-text').textContent = state;
+                        const equipMap = {
+                            'dehum': 'dehumidifier',
+                            'hum_solenoid': 'humidifier',
+                            'hum_fan': 'humidifier',
+                            'erv': 'erv',
+                            'mini_split': 'mini_split',
+                            'supply_fan': 'supply_fan',
+                            'return_fan': 'exhaust_fan'
+                        };
+                        
+                        Object.entries(data.equipment).forEach(([backendName, state]) => {
+                            const frontendName = equipMap[backendName] || backendName;
+                            const element = document.querySelector(`[data-equipment="${frontendName}"]`);
+                            if (element) {
+                                element.classList.remove('off', 'on', 'idle');
+                                element.classList.add(state.toLowerCase());
+                                const statusText = element.querySelector('.equipment-status-text');
+                                if (statusText) {
+                                    statusText.textContent = state.toUpperCase();
+                                }
                             }
                         });
                     }
@@ -1128,26 +1174,24 @@
                 .catch(error => console.error('Error fetching status:', error));
         }
 
-        // Update every 2 seconds to match your backend
-        setInterval(updateSensors, 2000);
-
         // Touch/swipe handling for VPD adjustment
         let touchStartY = 0;
         let touchStartVPD = currentVPD;
 
         const vpdCard = document.querySelector('.vpd-main-card');
-        
-        vpdCard.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-            touchStartVPD = currentVPD;
-        }, { passive: true });
+        if (vpdCard) {
+            vpdCard.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+                touchStartVPD = currentVPD;
+            }, { passive: true });
 
-        vpdCard.addEventListener('touchmove', (e) => {
-            const deltaY = touchStartY - e.touches[0].clientY;
-            const deltaVPD = (deltaY / 100) * 0.2; // Adjust sensitivity
-            currentVPD = Math.max(VPD_MIN, Math.min(VPD_MAX, touchStartVPD + deltaVPD));
-            updateVPDDisplay();
-        }, { passive: true });
+            vpdCard.addEventListener('touchmove', (e) => {
+                const deltaY = touchStartY - e.touches[0].clientY;
+                const deltaVPD = (deltaY / 100) * 0.2;
+                currentVPD = Math.max(VPD_MIN, Math.min(VPD_MAX, touchStartVPD + deltaVPD));
+                updateVPDDisplay();
+            }, { passive: true });
+        }
 
         // Prevent zoom on double tap
         let lastTouchEnd = 0;
@@ -1159,11 +1203,16 @@
             lastTouchEnd = now;
         }, false);
 
-        // Initialize
-        updateTime();
-        updateVPDDisplay();
-        setInterval(updateTime, 60000);
-        setInterval(updateSensors, 3000);
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+            updateVPDDisplay();
+            updateDashboard();
+            
+            // Set up intervals
+            setInterval(updateTime, 60000);      // Update time every minute
+            setInterval(updateDashboard, 2000);  // Update dashboard every 2 seconds
+        });
     </script>
 </body>
 </html>
