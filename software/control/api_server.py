@@ -76,23 +76,34 @@ def get_status():
         logger.error(f"Error getting status: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/sensors', methods=['GET'])
-def get_sensors():
-    """Get all sensor readings"""
-    if not controller:
-        return jsonify({'error': 'System not initialized'}), 503
+@app.route('/api/real-sensors', methods=['GET'])
+def get_real_sensors():
+    """Get ONLY real hardware sensor readings"""
+    result = {}
     
-    sensors = {}
-    for sensor_id, reading in controller.sensor_readings.items():
-        sensors[sensor_id] = {
-            'temperature': reading.temperature,
-            'humidity': reading.humidity,
-            'vpd': reading.vpd_kpa,
-            'dew_point': reading.dew_point,
-            'timestamp': reading.timestamp.isoformat()
-        }
+    if controller and controller.sensor_manager and controller.hardware_mode:
+        # Get real hardware readings only
+        for sensor_name in controller.sensor_manager.sensors.keys():
+            reading = controller.sensor_manager.get_reading(sensor_name)
+            if reading:
+                result[sensor_name] = {
+                    'temperature': reading.get('temperature'),
+                    'humidity': reading.get('humidity'),
+                    'timestamp': reading.get('timestamp', '')
+                }
+        print(f"Real sensors found: {list(result.keys())}")  # Debug line
+    else:
+        print(f"Hardware mode: {controller.hardware_mode if controller else 'No controller'}")  # Debug line
     
-    return jsonify(sensors)
+    # Fill in nulls for missing sensors
+    all_sensors = ['dry_room_1', 'dry_room_2', 'dry_room_3', 'dry_room_4', 
+                   'supply_duct', 'return_duct', 'air_room']
+    
+    for sensor in all_sensors:
+        if sensor not in result:
+            result[sensor] = {'temperature': None, 'humidity': None, 'timestamp': None}
+    
+    return jsonify(result)
 
 @app.route('/api/sensors/<sensor_id>', methods=['POST'])
 def update_sensor(sensor_id):
