@@ -4,13 +4,13 @@ Flask API Server for Cannabis Drying Control System
 Provides REST API for GUI interaction and remote monitoring
 """
 
+from datetime import datetime
 from flask import Flask, jsonify, request, render_template_string, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 import threading
 import time
 import json
-from datetime import datetime
 import logging
 import os
 
@@ -76,34 +76,45 @@ def get_status():
         logger.error(f"Error getting status: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/real-sensors', methods=['GET'])
-def get_real_sensors():
-    """Get ONLY real hardware sensor readings"""
-    result = {}
+@app.route('/api/sensors', methods=['GET'])
+def get_sensors():
+    """Get sensor readings - real sensors only for hardware mode"""
+    if not controller:
+        return jsonify({'error': 'System not initialized'}), 503
     
-    if controller and controller.sensor_manager and controller.hardware_mode:
-        # Get real hardware readings only
-        for sensor_name in controller.sensor_manager.sensors.keys():
-            reading = controller.sensor_manager.get_reading(sensor_name)
+    # Expected sensor structure for frontend
+    sensors = {
+        'dry_room_1': {'temperature': None, 'humidity': None, 'timestamp': None},
+        'dry_room_2': {'temperature': None, 'humidity': None, 'timestamp': None},
+        'dry_room_3': {'temperature': None, 'humidity': None, 'timestamp': None},
+        'dry_room_4': {'temperature': None, 'humidity': None, 'timestamp': None},
+        'supply_duct': {'temperature': None, 'humidity': None, 'timestamp': None},
+        'return_duct': {'temperature': None, 'humidity': None, 'timestamp': None},
+        'air_room': {'temperature': None, 'humidity': None, 'timestamp': None}
+    }
+    
+    # In hardware mode, get ONLY real sensor data
+    if controller.hardware_mode and controller.sensor_manager:
+        # You have dry_room_1 and supply_duct connected
+        if 'dry_room_1' in controller.sensor_manager.sensors:
+            reading = controller.sensor_manager.get_reading('dry_room_1')
             if reading:
-                result[sensor_name] = {
+                sensors['dry_room_1'] = {
                     'temperature': reading.get('temperature'),
                     'humidity': reading.get('humidity'),
-                    'timestamp': reading.get('timestamp', '')
+                    'timestamp': reading.get('timestamp', datetime.now().isoformat())
                 }
-        print(f"Real sensors found: {list(result.keys())}")  # Debug line
-    else:
-        print(f"Hardware mode: {controller.hardware_mode if controller else 'No controller'}")  # Debug line
+        
+        if 'supply_duct' in controller.sensor_manager.sensors:
+            reading = controller.sensor_manager.get_reading('supply_duct')
+            if reading:
+                sensors['supply_duct'] = {
+                    'temperature': reading.get('temperature'),
+                    'humidity': reading.get('humidity'),
+                    'timestamp': reading.get('timestamp', datetime.now().isoformat())
+                }
     
-    # Fill in nulls for missing sensors
-    all_sensors = ['dry_room_1', 'dry_room_2', 'dry_room_3', 'dry_room_4', 
-                   'supply_duct', 'return_duct', 'air_room']
-    
-    for sensor in all_sensors:
-        if sensor not in result:
-            result[sensor] = {'temperature': None, 'humidity': None, 'timestamp': None}
-    
-    return jsonify(result)
+    return jsonify(sensors)
 
 @app.route('/api/sensors/<sensor_id>', methods=['POST'])
 def update_sensor(sensor_id):
