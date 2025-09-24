@@ -95,24 +95,16 @@ def get_sensors():
     
     # In hardware mode, get ONLY real sensor data
     if controller.hardware_mode and controller.sensor_manager:
-        # You have dry_room_1 and supply_duct connected
-        if 'dry_room_1' in controller.sensor_manager.sensors:
-            reading = controller.sensor_manager.get_reading('dry_room_1')
-            if reading:
-                sensors['dry_room_1'] = {
-                    'temperature': reading.get('temperature'),
-                    'humidity': reading.get('humidity'),
-                    'timestamp': reading.get('timestamp', datetime.now().isoformat())
-                }
-        
-        if 'supply_duct' in controller.sensor_manager.sensors:
-            reading = controller.sensor_manager.get_reading('supply_duct')
-            if reading:
-                sensors['supply_duct'] = {
-                    'temperature': reading.get('temperature'),
-                    'humidity': reading.get('humidity'),
-                    'timestamp': reading.get('timestamp', datetime.now().isoformat())
-                }
+        # Read the actual hardware sensors
+        for sensor_name in ['dry_room_1', 'supply_duct']:
+            if sensor_name in controller.sensor_manager.sensors:
+                reading = controller.sensor_manager.read_sensor(sensor_name)
+                if reading:
+                    sensors[sensor_name] = {
+                        'temperature': reading.get('temperature'),
+                        'humidity': reading.get('humidity'),
+                        'timestamp': reading.get('timestamp', datetime.now()).isoformat() if reading.get('timestamp') else datetime.now().isoformat()
+                    }
     
     return jsonify(sensors)
 
