@@ -52,14 +52,29 @@ def check_api_key():
 
 # Serve the HTML GUI from software/gui directory
 @app.route('/')
-def serve_gui():
-    """Serve the main GUI interface"""
-    gui_path = os.path.join(os.path.dirname(__file__), '..', 'gui')
-    if os.path.exists(os.path.join(gui_path, 'index.html')):
-        return send_from_directory(gui_path, 'index.html')
+def index():
+    """Serve the main touchscreen interface"""
+    gui_path = os.path.join(os.path.dirname(__file__), '..', '..', 'touchscreen', 'index.html')
+    if os.path.exists(gui_path):
+        return send_from_directory(os.path.dirname(gui_path), 'index.html')
     else:
-        # Fallback to simple dashboard if GUI not found
-        return dashboard()
+        # Fallback - try to find it
+        return "HTML file not found at: " + gui_path
+    
+@app.route('/debug')
+def debug():
+    """Debug route to check file paths"""
+    import os
+    base_dir = os.path.dirname(__file__)
+    touchscreen_dir = os.path.join(base_dir, '..', '..', 'touchscreen')
+    index_path = os.path.join(touchscreen_dir, 'index.html')
+    
+    return jsonify({
+        'base_dir': base_dir,
+        'touchscreen_dir': os.path.abspath(touchscreen_dir),
+        'index_exists': os.path.exists(index_path),
+        'files_in_dir': os.listdir(touchscreen_dir) if os.path.exists(touchscreen_dir) else []
+    })
 
 # API Routes
 
