@@ -438,48 +438,41 @@
             z-index: 10;
         }
 
-        /* Remove the arrows if they're causing issues with the small gauge */
-        .gauge-indicator::before,
-        .gauge-indicator::after {
-            display: none;
-        }
-
         .gauge-indicator::before {
             content: '';
             position: absolute;
-            top: -10px;
+            top: -5px;
             left: 50%;
             transform: translateX(-50%);
             width: 0;
             height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 8px solid white;
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+            border-top: 4px solid white;
         }
 
         .gauge-indicator::after {
             content: '';
             position: absolute;
-            bottom: -10px;
+            bottom: -5px;
             left: 50%;
             transform: translateX(-50%);
             width: 0;
             height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-bottom: 8px solid white;
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+            border-bottom: 4px solid white;
         }
 
         .optimal-range-overlay {
             position: absolute;
             top: 0;
             bottom: 0;
-            background: rgba(0, 255, 0, 0.2);
+            background: rgba(0, 255, 0, 0.25);
             border-left: 2px solid #00E515;
             border-right: 2px solid #00E515;
             pointer-events: none;
             transition: all 0.3s ease;
-            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
         }
 
         .adjust-button {
