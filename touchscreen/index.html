@@ -389,32 +389,91 @@
         }
 
         .vpd-gauge-simple {
+            position: relative;
             width: 100%;
             max-width: 260px;
-            height: 18px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 9px;
-            overflow: hidden;
-            position: relative;
-            margin-top: 20px;
+            height: 40px;
+            margin: 20px 0;
+            border-radius: 20px;
+            overflow: visible;
+            background: linear-gradient(
+                to right,
+                #FF0000 0%,
+                #FF6666 10%,
+                #FF9900 20%,
+                #FFCC00 30%,
+                #FFD700 35%,
+                #AADD00 40%,
+                #66DD00 45%,
+                #00E515 48%,
+                #00FF00 50%,
+                #00E515 52%,
+                #66DD00 55%,
+                #AADD00 60%,
+                #FFD700 65%,
+                #FFCC00 70%,
+                #FF9900 80%,
+                #FF6666 90%,
+                #FF0000 100%
+            );
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.2);
         }
 
         .gauge-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #FF4444, #FFA500, #FFFF00, #00C310, #00E515);
-            width: 100%;
-            position: relative;
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
         }
 
         .gauge-indicator {
             position: absolute;
-            top: -3px;
+            top: 50%;
             width: 4px;
-            height: 24px;
+            height: 150%;
             background: white;
             border-radius: 2px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-            transition: left 0.5s ease;
+            transform: translate(-50%, -50%);
+            transition: left 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+
+        .gauge-indicator::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid white;
+        }
+
+        .gauge-indicator::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 8px solid white;
+        }
+
+        .optimal-range-overlay {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: rgba(0, 255, 0, 0.2);
+            border-left: 2px solid #00E515;
+            border-right: 2px solid #00E515;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
         }
 
         .adjust-button {
@@ -958,24 +1017,90 @@
             
             if (vpdValue) {
                 vpdValue.textContent = currentVPD.toFixed(2);
+            }
+            
+            // Update Target range display (first range-value)
+            const rangeValues = document.querySelectorAll('.vpd-range .range-value');
+            if (rangeValues[0]) {
+                rangeValues[0].textContent = `${VPD_TARGET_MIN.toFixed(2)}-${VPD_TARGET_MAX.toFixed(2)}`;
+            }
+            
+            // Update Current Status with dynamic color (second range-value)
+            if (rangeValues[1]) {
+                const warningTolerance = 0.1;
+                let statusText = '';
+                let statusColor = '';
                 
-                // Update color based on range
                 if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
-                    vpdValue.style.background = 'linear-gradient(135deg, #00C310, #00E515)';
-                } else if (currentVPD >= 1.0 && currentVPD <= 1.5) {
-                    vpdValue.style.background = 'linear-gradient(135deg, #FFA500, #FFD700)';
+                    statusText = 'OPTIMAL';
+                    statusColor = '#00E515';
+                } else if (currentVPD >= (VPD_TARGET_MIN - warningTolerance) && currentVPD <= (VPD_TARGET_MAX + warningTolerance)) {
+                    statusText = 'WARNING';
+                    statusColor = '#FFD700';
                 } else {
-                    vpdValue.style.background = 'linear-gradient(135deg, #8858ed, #6633bb)';
+                    statusText = 'CRITICAL';
+                    statusColor = '#FF4444';
                 }
-                vpdValue.style.webkitBackgroundClip = 'text';
-                vpdValue.style.webkitTextFillColor = 'transparent';
+                
+                rangeValues[1].textContent = statusText;
+                rangeValues[1].style.color = statusColor;
+                rangeValues[1].style.fontWeight = '700';
+                rangeValues[1].style.textShadow = `0 0 10px ${statusColor}40`;
+                rangeValues[1].style.transition = 'all 0.3s ease';
             }
             
             if (vpdIndicator) {
                 // Update indicator position (0.6 to 2.0 kPa range)
                 const position = ((currentVPD - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
                 vpdIndicator.style.left = `${Math.max(0, Math.min(100, position))}%`;
+                
+                // Update indicator color based on status
+                const warningTolerance = 0.1;
+                if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
+                    vpdIndicator.style.background = '#00E515';
+                    vpdIndicator.style.boxShadow = '0 0 15px #00E515';
+                } else if (currentVPD >= (VPD_TARGET_MIN - warningTolerance) && currentVPD <= (VPD_TARGET_MAX + warningTolerance)) {
+                    vpdIndicator.style.background = '#FFD700';
+                    vpdIndicator.style.boxShadow = '0 0 15px #FFD700';
+                } else {
+                    vpdIndicator.style.background = '#FF4444';
+                    vpdIndicator.style.boxShadow = '0 0 15px #FF4444';
+                }
             }
+            
+            // Update VPD value color based on status
+            if (vpdValue) {
+                if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
+                    vpdValue.style.background = 'linear-gradient(135deg, #00C310, #00E515)';
+                } else if (currentVPD >= (VPD_TARGET_MIN - 0.1) && currentVPD <= (VPD_TARGET_MAX + 0.1)) {
+                    vpdValue.style.background = 'linear-gradient(135deg, #FFA500, #FFD700)';
+                } else {
+                    vpdValue.style.background = 'linear-gradient(135deg, #FF4444, #FF6666)';
+                }
+                vpdValue.style.webkitBackgroundClip = 'text';
+                vpdValue.style.webkitTextFillColor = 'transparent';
+            }
+            
+            // Add optimal range overlay to gauge
+            updateGaugeOptimalRange();
+        }
+
+        function updateGaugeOptimalRange() {
+            const gauge = document.querySelector('.vpd-gauge-simple');
+            if (!gauge) return;
+            
+            const optimalStartPercent = ((VPD_TARGET_MIN - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
+            const optimalEndPercent = ((VPD_TARGET_MAX - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
+            
+            let optimalOverlay = gauge.querySelector('.optimal-range-overlay');
+            if (!optimalOverlay) {
+                optimalOverlay = document.createElement('div');
+                optimalOverlay.className = 'optimal-range-overlay';
+                gauge.appendChild(optimalOverlay);
+            }
+            
+            optimalOverlay.style.left = `${optimalStartPercent}%`;
+            optimalOverlay.style.width = `${optimalEndPercent - optimalStartPercent}%`;
         }
 
         // Navigation functions
