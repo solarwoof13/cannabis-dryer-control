@@ -554,6 +554,55 @@ class PrecisionVPDController:
                 logger.error(f"Control loop error: {e}")
                 time.sleep(5)
 
+    def get_system_status(self):
+        """Get complete system status for API"""
+        
+        # Get current phase and setpoints
+        current_phase = self.current_phase
+        phase_settings = self.phase_setpoints.get(current_phase, self.phase_setpoints[DryingPhase.DRY_INITIAL])
+        
+        # Get sensor averages
+        avg_temp = 68.0
+        avg_humidity = 60.0
+        avg_vpd = 0.75
+        
+        if self.sensor_readings:
+            temps = [r.temperature for r in self.sensor_readings if r.temperature]
+            humids = [r.humidity for r in self.sensor_readings if r.humidity]
+            vpds = [r.vpd_kpa for r in self.sensor_readings if r.vpd_kpa]
+            
+            if temps:
+                avg_temp = sum(temps) / len(temps)
+            if humids:
+                avg_humidity = sum(humids) / len(humids)
+            if vpds:
+                avg_vpd = sum(vpds) / len(vpds)
+        
+        # Calculate process time
+        elapsed_hours = 0
+        current_day = 1
+        if self.process_start_time:
+            elapsed = datetime.now() - self.process_start_time
+            elapsed_hours = elapsed.total_seconds() / 3600
+            current_day = elapsed.days + 1
+        
+        return {
+            'current_phase': current_phase.value,
+            'current_day': current_day,
+            'elapsed_hours': elapsed_hours,
+            'current_vpd': float(avg_vpd),
+            'vpd_target_min': float(phase_settings.vpd_min),
+            'vpd_target_max': float(phase_settings.vpd_max),
+            'current_temp': float(avg_temp),
+            'current_humidity': float(avg_humidity),
+            'temp_target': float(phase_settings.temp_target),
+            'humidity_min': float(phase_settings.humidity_min),
+            'humidity_max': float(phase_settings.humidity_max),
+            'dew_point_target': float(phase_settings.dew_point_target),
+            'process_active': self.process_active,
+            'equipment_states': {k: v.value for k, v in self.equipment_states.items()},
+            'timestamp': datetime.now().isoformat()
+        }
 
 # Simulation mode for testing without hardware
 class SimulationMode:
