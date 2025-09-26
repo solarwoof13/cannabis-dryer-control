@@ -420,20 +420,20 @@
             height: 18px;
             margin-top: 20px;
             border-radius: 9px;
-            overflow: visible; /* Changed to visible to show triangle */
+            overflow: visible;
             background: linear-gradient(
                 to right,
-                #FF0000 0%,      /* Far left - critical red */
-                #FF4444 10%,     /* Red zone */
-                #FF9900 20%,     /* Orange warning */
-                #FFD700 30%,     /* Yellow caution */
-                #00E515 40%,     /* Green optimal START - wider green zone */
-                #00FF00 50%,     /* Green optimal CENTER */
-                #00E515 60%,     /* Green optimal END - wider green zone */
-                #FFD700 70%,     /* Yellow caution */
-                #FF9900 80%,     /* Orange warning */
-                #FF4444 90%,     /* Red zone */
-                #FF0000 100%     /* Far right - critical red */
+                #FF0000 0%,      /* 0.3 kPa - Far left red */
+                #FF4444 15%,     /* 0.5 kPa - Red zone */
+                #FF9900 25%,     /* 0.6 kPa - Orange warning */
+                #FFD700 35%,     /* 0.65 kPa - Yellow caution */
+                #00FF00 40%,     /* 0.7 kPa - Green START */
+                #00FF00 47%,     /* 0.75 kPa - Green CENTER */
+                #00FF00 53%,     /* 0.8 kPa - Green END */
+                #FFD700 58%,     /* 0.85 kPa - Yellow caution */
+                #FF9900 70%,     /* 1.0 kPa - Orange warning */
+                #FF4444 85%,     /* 1.5 kPa - Red zone */
+                #FF0000 100%     /* 2.0 kPa - Far right red */
             );
             box-shadow: 
                 inset 0 2px 8px rgba(0,0,0,0.4), 
@@ -464,17 +464,6 @@
 
         .gauge-indicator::before {
             display: none !important;
-        }
-
-        .optimal-range-overlay {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            background: rgba(0, 255, 0, 0.25);
-            border-left: 2px solid #00E515;
-            border-right: 2px solid #00E515;
-            pointer-events: none;
-            transition: all 0.3s ease;
         }
 
         .adjust-button {
@@ -1144,7 +1133,7 @@
             }
             
             if (vpdIndicator) {
-                // Update indicator position (0.6 to 2.0 kPa range)
+                // Update indicator position (0.3 to 2.0 kPa range)
                 const position = ((currentVPD - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
                 vpdIndicator.style.left = `${Math.max(0, Math.min(100, position))}%`;
                 vpdIndicator.style.transform = 'translateX(-50%)'; // Center the triangle
@@ -1176,26 +1165,6 @@
                 vpdValue.style.webkitTextFillColor = 'transparent';
             }
             
-            // Add optimal range overlay to gauge
-            updateGaugeOptimalRange();
-        }
-
-        function updateGaugeOptimalRange() {
-            const gauge = document.querySelector('.vpd-gauge-simple');
-            if (!gauge) return;
-            
-            const optimalStartPercent = ((VPD_TARGET_MIN - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
-            const optimalEndPercent = ((VPD_TARGET_MAX - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
-            
-            let optimalOverlay = gauge.querySelector('.optimal-range-overlay');
-            if (!optimalOverlay) {
-                optimalOverlay = document.createElement('div');
-                optimalOverlay.className = 'optimal-range-overlay';
-                gauge.appendChild(optimalOverlay);
-            }
-            
-            optimalOverlay.style.left = `${optimalStartPercent}%`;
-            optimalOverlay.style.width = `${optimalEndPercent - optimalStartPercent}%`;
         }
 
         // Navigation functions
