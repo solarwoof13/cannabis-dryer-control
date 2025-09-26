@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
 Cannabis Drying and Curing Control System - Precision VPD Control
-Mimics Cannatrol-style precision with gradual stepping for optimal terpene retention
+Precision drying with gradual stepping for optimal terpene retention
 """
 
 import time
 import json
 import logging
+import threading
+import numpy as np
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Tuple
 from enum import Enum
-import threading
 from collections import deque
-import numpy as np
 
 # Configure logging
 logging.basicConfig(
@@ -354,7 +354,7 @@ class PrecisionVPDController:
             humids = []
             vpds = []
             
-            for reading in self.sensor_readings:
+            for sensor_name, reading in self.sensor_readings.items():
                 # Skip if reading is None or a string
                 if reading is None or isinstance(reading, str):
                     continue
