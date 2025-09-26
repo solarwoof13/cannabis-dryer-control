@@ -148,7 +148,7 @@ class PrecisionVPDController:
                 temp_target=65.5, temp_tolerance=0.5,
                 dew_point_target=51, dew_point_tolerance=1,
                 humidity_min=50, humidity_max=55,
-                vpd_min=0.9, vpd_max=1.0,
+                vpd_min=0.85, vpd_max=0.95,
                 duration_hours=48,
                 air_changes_per_hour=6
             ),
@@ -161,10 +161,10 @@ class PrecisionVPDController:
                 air_changes_per_hour=6
             ),
             DryingPhase.STORAGE: ControlSetpoint(
-                temp_target=65, temp_tolerance=2,
-                dew_point_target=50, dew_point_tolerance=2,
-                humidity_min=58, humidity_max=62,
-                vpd_min=0.7, vpd_max=0.9,
+                temp_target=65, temp_tolerance=1,
+                dew_point_target=52, dew_point_tolerance=1,
+                humidity_min=60, humidity_max=65,
+                vpd_min=0.65, vpd_max=0.85,
                 duration_hours=0,  # Indefinite
                 air_changes_per_hour=4
             )
