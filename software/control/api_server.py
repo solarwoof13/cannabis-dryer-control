@@ -111,22 +111,26 @@ def get_status():
         
         # Try different methods to get sensor data
         if hasattr(controller, 'get_dry_room_conditions'):
-            # This method exists in your vpd_controller.py
-            avg_temp, avg_humidity, avg_dew_point, current_vpd = controller.get_dry_room_conditions()
-        elif hasattr(controller, 'sensor_readings') and controller.sensor_readings:
-            # Direct access to sensor readings
-            readings = controller.sensor_readings
-            if len(readings) > 0:
-                vpd_values = [r.vpd_kpa for sensor_name, r in readings.items() if hasattr(r, 'vpd_kpa') and r.vpd_kpa > 0]
-                temp_values = [r.temperature for sensor_name, r in readings.items() if hasattr(r, 'temperature')]
-                humidity_values = [r.humidity for sensor_name, r in readings.items() if hasattr(r, 'humidity')]
-                
-                if vpd_values:
-                    current_vpd = sum(vpd_values) / len(vpd_values)
-                if temp_values:
-                    avg_temp = sum(temp_values) / len(temp_values)
-                if humidity_values:
-                    avg_humidity = sum(humidity_values) / len(humidity_values)
+            try:
+                avg_temp, avg_humidity, avg_dew_point, current_vpd = controller.get_dry_room_conditions()
+            except ValueError as e:
+                # Sensor failure - don't use fake data
+                logger.error(f"Sensor failure: {e}")
+                # Continue to try the fallback methods below
+                if hasattr(controller, 'sensor_readings') and controller.sensor_readings:
+                    # Direct access to sensor readings (your existing elif code)
+                    readings = controller.sensor_readings
+                    if len(readings) > 0:
+                        vpd_values = [r.vpd_kpa for sensor_name, r in readings.items() if hasattr(r, 'vpd_kpa') and r.vpd_kpa > 0]
+                        temp_values = [r.temperature for sensor_name, r in readings.items() if hasattr(r, 'temperature')]
+                        humidity_values = [r.humidity for sensor_name, r in readings.items() if hasattr(r, 'humidity')]
+                        
+                        if vpd_values:
+                            current_vpd = sum(vpd_values) / len(vpd_values)
+                        if temp_values:
+                            avg_temp = sum(temp_values) / len(temp_values)
+                        if humidity_values:
+                            avg_humidity = sum(humidity_values) / len(humidity_values)
         elif hasattr(controller, 'last_vpd'):
             # Use cached values
             current_vpd = controller.last_vpd
