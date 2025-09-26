@@ -117,9 +117,9 @@ def get_status():
             # Direct access to sensor readings
             readings = controller.sensor_readings
             if len(readings) > 0:
-                vpd_values = [r.vpd_kpa for r in readings if hasattr(r, 'vpd_kpa') and r.vpd_kpa > 0]
-                temp_values = [r.temperature for r in readings if hasattr(r, 'temperature')]
-                humidity_values = [r.humidity for r in readings if hasattr(r, 'humidity')]
+                vpd_values = [r.vpd_kpa for sensor_name, r in readings.items() if hasattr(r, 'vpd_kpa') and r.vpd_kpa > 0]
+                temp_values = [r.temperature for sensor_name, r in readings.items() if hasattr(r, 'temperature')]
+                humidity_values = [r.humidity for sensor_name, r in readings.items() if hasattr(r, 'humidity')]
                 
                 if vpd_values:
                     current_vpd = sum(vpd_values) / len(vpd_values)
