@@ -149,7 +149,6 @@ def get_status():
         # Calculate current day
         current_day = 1
         if hasattr(controller, 'process_start_time') and controller.process_start_time:
-            from datetime import datetime
             elapsed = datetime.now() - controller.process_start_time
             current_day = elapsed.days + 1
         
