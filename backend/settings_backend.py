@@ -42,7 +42,7 @@ DEFAULT_SETTINGS = {
     'process': {
         'drying_time_days': 4,
         'curing_time_days': 4,
-        'target_water_activity': 0.60,
+        'target_water_activity': 0.61,
         'linear_adjustment': True,
         'session_active': False,
         'session_start_time': None,

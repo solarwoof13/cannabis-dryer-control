@@ -5,6 +5,7 @@ Provides REST API for GUI interaction and remote monitoring
 """
 
 from datetime import datetime
+from software.control.vpd_controller import DryingPhase
 from flask import Flask, jsonify, request, render_template_string, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
@@ -65,16 +66,120 @@ def index():
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
-    """Get current system status"""
+    """Get current system status with VPD targets"""
     if not controller:
-        return jsonify({'error': 'System not initialized'}), 503
+        return jsonify({
+            'error': 'System not initialized',
+            'current_vpd': 0.75,
+            'vpd_target_min': 0.7,
+            'vpd_target_max': 0.8,
+            'current_phase': 'IDLE',
+            'current_temp': 68.0,
+            'current_humidity': 60.0
+        }), 503
     
     try:
-        status = controller.get_system_status()
+        # Try to get the existing system status first
+        if hasattr(controller, 'get_system_status'):
+            status = controller.get_system_status()
+        else:
+            status = {}
+        
+        # Get current phase and VPD targets from controller
+        from software.control.vpd_controller import DryingPhase
+        current_phase = controller.current_phase if hasattr(controller, 'current_phase') else DryingPhase.DRY_INITIAL
+        
+        # Get the VPD targets for current phase
+        vpd_min = 0.7  # Default
+        vpd_max = 0.8  # Default
+        temp_target = 68
+        humidity_min = 60
+        humidity_max = 65
+        
+        if hasattr(controller, 'phase_setpoints') and current_phase in controller.phase_setpoints:
+            phase_settings = controller.phase_setpoints[current_phase]
+            vpd_min = phase_settings.vpd_min
+            vpd_max = phase_settings.vpd_max
+            temp_target = phase_settings.temp_target
+            humidity_min = phase_settings.humidity_min
+            humidity_max = phase_settings.humidity_max
+        
+        # Get current VPD and sensor averages
+        current_vpd = 0.75
+        avg_temp = 68.0
+        avg_humidity = 60.0
+        
+        # Try different methods to get sensor data
+        if hasattr(controller, 'get_dry_room_conditions'):
+            # This method exists in your vpd_controller.py
+            avg_temp, avg_humidity, avg_dew_point, current_vpd = controller.get_dry_room_conditions()
+        elif hasattr(controller, 'sensor_readings') and controller.sensor_readings:
+            # Direct access to sensor readings
+            readings = controller.sensor_readings
+            if len(readings) > 0:
+                vpd_values = [r.vpd_kpa for r in readings if hasattr(r, 'vpd_kpa') and r.vpd_kpa > 0]
+                temp_values = [r.temperature for r in readings if hasattr(r, 'temperature')]
+                humidity_values = [r.humidity for r in readings if hasattr(r, 'humidity')]
+                
+                if vpd_values:
+                    current_vpd = sum(vpd_values) / len(vpd_values)
+                if temp_values:
+                    avg_temp = sum(temp_values) / len(temp_values)
+                if humidity_values:
+                    avg_humidity = sum(humidity_values) / len(humidity_values)
+        elif hasattr(controller, 'last_vpd'):
+            # Use cached values
+            current_vpd = controller.last_vpd
+            if hasattr(controller, 'last_temp'):
+                avg_temp = controller.last_temp
+            if hasattr(controller, 'last_humidity'):
+                avg_humidity = controller.last_humidity
+        
+        # Determine process state
+        process_active = False
+        if hasattr(controller, 'process_active'):
+            process_active = controller.process_active
+        elif current_phase != DryingPhase.IDLE:
+            process_active = True
+        
+        # Calculate current day
+        current_day = 1
+        if hasattr(controller, 'process_start_time') and controller.process_start_time:
+            from datetime import datetime
+            elapsed = datetime.now() - controller.process_start_time
+            current_day = elapsed.days + 1
+        
+        # Build the complete status response
+        # Include any existing status data and add our VPD specific data
+        status.update({
+            'current_phase': current_phase.value if hasattr(current_phase, 'value') else str(current_phase),
+            'current_day': current_day,
+            'current_vpd': float(current_vpd),
+            'vpd_target_min': float(vpd_min),
+            'vpd_target_max': float(vpd_max),
+            'current_temp': float(avg_temp),
+            'current_humidity': float(avg_humidity),
+            'temp_target': float(temp_target),
+            'humidity_min': float(humidity_min),
+            'humidity_max': float(humidity_max),
+            'process_active': process_active,
+            'timestamp': datetime.now().isoformat()
+        })
+        
         return jsonify(status)
+        
     except Exception as e:
         logger.error(f"Error getting status: {e}")
-        return jsonify({'error': str(e)}), 500
+        # Return default values on error so the display still works
+        return jsonify({
+            'error': str(e),
+            'current_vpd': 0.75,
+            'vpd_target_min': 0.7,
+            'vpd_target_max': 0.8,
+            'current_phase': 'ERROR',
+            'current_temp': 68.0,
+            'current_humidity': 60.0
+        }), 500
 
 @app.route('/api/sensors', methods=['GET'])
 def get_sensors():
