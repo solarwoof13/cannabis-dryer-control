@@ -459,9 +459,9 @@
             z-index: 10;
             /* Add subtle shadow for visibility */
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+            transform: translateX(-50%);
         }
 
-        /* Remove any ::before pseudo-elements from gauge-indicator */
         .gauge-indicator::before {
             display: none !important;
         }
@@ -1073,24 +1073,6 @@
                 rangeValues[1].style.textShadow = `0 0 10px ${statusColor}40`;
             }
             
-            // Update indicator position
-            if (vpdIndicator) {
-                const position = ((currentVPD - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
-                vpdIndicator.style.left = `${Math.max(0, Math.min(100, position))}%`;
-                
-                // Update indicator color
-                if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
-                    vpdIndicator.style.background = '#00E515';
-                    vpdIndicator.style.boxShadow = '0 0 15px #00E515';
-                } else if (currentVPD >= (VPD_TARGET_MIN - 0.1) && 
-                        currentVPD <= (VPD_TARGET_MAX + 0.1)) {
-                    vpdIndicator.style.background = '#FFD700';
-                    vpdIndicator.style.boxShadow = '0 0 15px #FFD700';
-                } else {
-                    vpdIndicator.style.background = '#FF4444';
-                    vpdIndicator.style.boxShadow = '0 0 15px #FF4444';
-                }
-            }
         }
 
         // Start updating when page loads
@@ -1165,6 +1147,7 @@
                 // Update indicator position (0.6 to 2.0 kPa range)
                 const position = ((currentVPD - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
                 vpdIndicator.style.left = `${Math.max(0, Math.min(100, position))}%`;
+                vpdIndicator.style.transform = 'translateX(-50%)'; // Center the triangle
                 
                 // Update indicator color based on status
                 const warningTolerance = 0.1;
