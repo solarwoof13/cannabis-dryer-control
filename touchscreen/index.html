@@ -412,80 +412,58 @@
             font-weight: 700;
         }
 
+        /* VPD GAUGE - Replace the existing .vpd-gauge-simple styles */
         .vpd-gauge-simple {
             position: relative;
             width: 100%;
             max-width: 260px;
-            height: 18px;  /* Keep original height */
+            height: 18px;
             margin-top: 20px;
-            border-radius: 9px;  /* Keep original radius */
-            overflow: hidden;  /* Changed from visible to hidden to show gradient */
+            border-radius: 9px;
+            overflow: visible; /* Changed to visible to show triangle */
             background: linear-gradient(
                 to right,
-                #FF0000 0%,
-                #FF3333 5%,
-                #FF6666 10%,
-                #FF9900 20%,
-                #FFCC00 30%,
-                #FFD700 35%,
-                #AADD00 40%,
-                #66DD00 45%,
-                #00E515 48%,
-                #00FF00 50%,
-                #00E515 52%,
-                #66DD00 55%,
-                #AADD00 60%,
-                #FFD700 65%,
-                #FFCC00 70%,
-                #FF9900 80%,
-                #FF6666 90%,
-                #FF3333 95%,
-                #FF0000 100%
+                #FF0000 0%,      /* Far left - critical red */
+                #FF4444 10%,     /* Red zone */
+                #FF9900 20%,     /* Orange warning */
+                #FFD700 30%,     /* Yellow caution */
+                #00E515 40%,     /* Green optimal START - wider green zone */
+                #00FF00 50%,     /* Green optimal CENTER */
+                #00E515 60%,     /* Green optimal END - wider green zone */
+                #FFD700 70%,     /* Yellow caution */
+                #FF9900 80%,     /* Orange warning */
+                #FF4444 90%,     /* Red zone */
+                #FF0000 100%     /* Far right - critical red */
             );
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+            box-shadow: 
+                inset 0 2px 8px rgba(0,0,0,0.4), 
+                0 1px 2px rgba(0,0,0,0.3);
         }
 
-        /* Make sure gauge-fill is hidden */
+        /* Hide the gauge-fill completely */
         .gauge-fill {
             display: none !important;
         }
 
+        /* Triangle indicator that moves along the gauge */
         .gauge-indicator {
             position: absolute;
-            top: -3px;  /* Keep original positioning */
-            width: 4px;
-            height: 24px;  /* Keep original height */
-            background: white;
-            border-radius: 2px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-            transition: left 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
+            top: -8px; /* Position triangle above the bar */
+            width: 0;
+            height: 0;
+            /* Triangle pointing down */
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 10px solid white;
+            transition: left 0.5s ease;
             z-index: 10;
+            /* Add subtle shadow for visibility */
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
         }
 
+        /* Remove any ::before pseudo-elements from gauge-indicator */
         .gauge-indicator::before {
-            content: '';
-            position: absolute;
-            top: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 3px solid transparent;
-            border-right: 3px solid transparent;
-            border-top: 4px solid white;
-        }
-
-        .gauge-indicator::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 3px solid transparent;
-            border-right: 3px solid transparent;
-            border-bottom: 4px solid white;
+            display: none !important;
         }
 
         .optimal-range-overlay {
