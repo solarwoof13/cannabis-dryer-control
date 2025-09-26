@@ -686,9 +686,9 @@ class PrecisionVPDController:
         avg_vpd = 0.75
         
         if self.sensor_readings:
-            temps = [r.temperature for r in self.sensor_readings if r.temperature]
-            humids = [r.humidity for r in self.sensor_readings if r.humidity]
-            vpds = [r.vpd_kpa for r in self.sensor_readings if r.vpd_kpa]
+            temps = [r.temperature for r in self.sensor_readings.values() if hasattr(r, 'temperature') and r.temperature]
+            humids = [r.humidity for r in self.sensor_readings.values() if hasattr(r, 'humidity') and r.humidity]
+            vpds = [r.vpd_kpa for r in self.sensor_readings.values() if hasattr(r, 'vpd_kpa') and r.vpd_kpa]
             
             if temps:
                 avg_temp = sum(temps) / len(temps)
