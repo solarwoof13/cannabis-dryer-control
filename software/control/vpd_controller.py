@@ -100,6 +100,9 @@ class PrecisionVPDController:
         self.current_phase = DryingPhase.DRY_INITIAL
         self.phase_start_time = datetime.now()
         self.sensor_readings: Dict[str, SensorReading] = {}
+        self.process_start_time = None  
+        self.process_active = False     
+        self.equipment_states = {}      
         
         # Equipment states - matching your actual equipment
         self.equipment_states = {
