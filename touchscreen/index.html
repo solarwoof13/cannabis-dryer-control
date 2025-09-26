@@ -997,29 +997,63 @@
     </div>
 
    <script>
+
         // Constants
         const VPD_MIN = 0.3;   // Absolute minimum for safety
         const VPD_MAX = 2.0;   // Absolute maximum for safety
+        let systemState = 'idle';  // idle, running, holding, complete, emergency
         let VPD_TARGET_MIN = 0.7;    // Will be replaced with actual value
         let VPD_TARGET_MAX = 0.8;    // Will be replaced with actual value
         let currentVPD = 0.75;        // Will be replaced with actual value
         let cycleState = 'idle';
+        let dryingProgress = 0;    // 0-100%
+        let curingProgress = 0;     // 0-100%
+        let currentPhase = 'idle'; // idle, drying, curing, storage
+        let phaseDay = 0;
+        let totalPhaseDays = 0;
+        let processStartTime = null;
 
         // Function to get real data from your Python controller
         function updateFromController() {
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
+                    // Update system state variables
+                    systemState = data.system_state || 'idle';
+                    currentPhase = data.phase || 'idle';
+                    dryingProgress = data.drying_progress || 0;
+                    curingProgress = data.curing_progress || 0;
+                    phaseDay = data.phase_day || 0;
+                    totalPhaseDays = data.phase_total_days || 0;
+                    
                     // Update with REAL values from your controller
                     currentVPD = data.current_vpd;
                     VPD_TARGET_MIN = data.vpd_target_min;
                     VPD_TARGET_MAX = data.vpd_target_max;
+                    systemState = data.system_state || 'idle';
+                    currentPhase = data.phase || 'idle';
+                    dryingProgress = data.drying_progress || 0;
+                    curingProgress = data.curing_progress || 0;
+                    phaseDay = data.phase_day || 0;
+                    totalPhaseDays = data.phase_total_days || 0;
                     
-                    // Update the display
+                    // ADD THESE NEW FUNCTION CALLS:
+                    updateSystemModeDisplay();
+                    updateProgressBars();
+
+                    // Update all displays
+                    updateSystemModeDisplay();
+                    updateProgressBars();
                     updateVPDDisplay();
+                    updateSensorDisplays(data.sensors);
+                    updateEquipmentStatus(data.equipment);
                 })
                 .catch(error => {
                     console.log('Waiting for backend...', error);
+                    // Set default idle state when no backend
+                    systemState = 'idle';
+                    currentPhase = 'idle';
+                    updateSystemModeDisplay();
                 });
         }
 
@@ -1064,8 +1098,160 @@
             
         }
 
-        // Start updating when page loads
+        // NEW FUNCTION 1: Add this entire function
+        function updateSystemModeDisplay() {
+            const modeText = document.getElementById('modeText');
+            const modeProgress = document.getElementById('modeProgress');
+            
+            if (modeText && modeProgress) {
+                switch (currentPhase) {
+                    case 'idle':
+                        modeText.textContent = 'IDLE MODE';
+                        modeProgress.textContent = 'System Ready';
+                        modeText.style.color = '#888';
+                        break;
+                    case 'drying':
+                        modeText.textContent = 'DRYING MODE';
+                        modeProgress.textContent = `Day ${phaseDay} of ${totalPhaseDays}`;
+                        modeText.style.color = '#FFD700';
+                        break;
+                    case 'curing':
+                        modeText.textContent = 'CURING MODE';
+                        modeProgress.textContent = `Day ${phaseDay} of ${totalPhaseDays}`;
+                        modeText.style.color = '#8858ed';
+                        break;
+                    case 'storage':
+                        modeText.textContent = 'STORAGE MODE';
+                        modeProgress.textContent = 'Process Complete';
+                        modeText.style.color = '#00E515';
+                        break;
+                    default:
+                        modeText.textContent = 'UNKNOWN';
+                        modeProgress.textContent = 'Check System';
+                        modeText.style.color = '#FF4444';
+                }
+            }
+        }
+
+        // NEW FUNCTION 2: Add this entire function
+        function updateProgressBars() {
+            // Update Drying Phase
+            const dryingHeader = document.querySelector('.status-phase:first-child .phase-header');
+            const dryingBar = document.querySelector('.status-phase:first-child .phase-fill');
+            const dryingText = document.querySelector('.status-phase:first-child .phase-text');
+            
+            if (dryingBar && dryingText) {
+                dryingBar.style.width = `${dryingProgress}%`;
+                dryingText.textContent = dryingProgress >= 100 ? '100% COMPLETE' : `${dryingProgress}%`;
+                
+                if (dryingProgress >= 100) {
+                    dryingBar.classList.add('complete');
+                    dryingBar.classList.remove('active');
+                } else if (dryingProgress > 0) {
+                    dryingBar.classList.add('active');
+                    dryingBar.classList.remove('complete');
+                } else {
+                    dryingBar.classList.remove('active', 'complete');
+                }
+            }
+            
+            if (dryingHeader) {
+                const timeDiv = dryingHeader.querySelector('.phase-time');
+                if (timeDiv) {
+                    if (dryingProgress >= 100) {
+                        timeDiv.textContent = 'Complete';
+                        timeDiv.style.color = '#00E515';
+                    } else if (currentPhase === 'drying') {
+                        const remainingDays = totalPhaseDays - phaseDay;
+                        timeDiv.textContent = `${remainingDays}d remaining`;
+                        timeDiv.style.color = '#FFD700';
+                    } else {
+                        timeDiv.textContent = 'Not Started';
+                        timeDiv.style.color = '#888';
+                    }
+                }
+            }
+            
+            // Update Curing Phase (paste the code you showed here)
+            const curingHeader = document.querySelector('.status-phase:last-child .phase-header');
+            const curingBar = document.querySelector('.status-phase:last-child .phase-fill');
+            const curingText = document.querySelector('.status-phase:last-child .phase-text');
+            
+            if (curingBar && curingText) {
+                curingBar.style.width = `${curingProgress}%`;
+                curingText.textContent = curingProgress >= 100 ? '100% COMPLETE' : `${curingProgress}%`;
+                
+                if (curingProgress >= 100) {
+                    curingBar.classList.add('complete');
+                    curingBar.classList.remove('active');
+                } else if (curingProgress > 0) {
+                    curingBar.classList.add('active');
+                    curingBar.classList.remove('complete');
+                } else {
+                    curingBar.classList.remove('active', 'complete');
+                }
+            }
+            
+            if (curingHeader) {
+                const timeDiv = curingHeader.querySelector('.phase-time');
+                if (timeDiv) {
+                    if (curingProgress >= 100) {
+                        timeDiv.textContent = 'Complete';
+                        timeDiv.style.color = '#00E515';
+                    } else if (currentPhase === 'curing') {
+                        const remainingDays = totalPhaseDays - phaseDay;
+                        const remainingHours = Math.floor((remainingDays % 1) * 24);
+                        timeDiv.textContent = `${Math.floor(remainingDays)}d ${remainingHours}h remaining`;
+                        timeDiv.style.color = '#8858ed';
+                    } else if (dryingProgress >= 100) {
+                        timeDiv.textContent = 'Ready to Start';
+                        timeDiv.style.color = '#FFD700';
+                    } else {
+                        timeDiv.textContent = 'Pending';
+                        timeDiv.style.color = '#888';
+                    }
+                }
+            }
+        }
+
+        // NEW FUNCTION 3: Add the start process function
+        function startProcess() {
+            if (systemState !== 'idle' && systemState !== 'complete') {
+                alert('Process already running!');
+                return;
+            }
+            
+            if (confirm('Start new drying and curing process?\n\nThis will begin a new 8-day cycle.')) {
+                fetch('/api/start-cycle', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        mode: 'standard',
+                        drying_days: 4,
+                        curing_days: 4,
+                        target_water_activity: 0.62
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Process started:', data);
+                    systemState = 'running';
+                    currentPhase = 'drying';
+                    processStartTime = new Date();
+                    updateFromController();
+                })
+                .catch(err => {
+                    console.error('Failed to start process:', err);
+                    alert('Failed to start process. Check system connection.');
+                });
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize displays with idle state
+            updateSystemModeDisplay();
+            updateProgressBars();
+            
             // Get initial data
             updateFromController();
             
@@ -1074,6 +1260,12 @@
             
             // Keep your existing clock update
             setInterval(updateClock, 1000);
+            
+            // Hook up the start button
+            const startBtn = document.querySelector('.start-button');
+            if (startBtn) {
+                startBtn.onclick = startProcess;
+            }
         });
 
         // Update time and date
@@ -1166,6 +1358,82 @@
             }
             
         }
+
+        // 3. ADD this new function to update the mode display:
+        function updateSystemModeDisplay() {
+            const modeText = document.getElementById('modeText');
+            const modeProgress = document.getElementById('modeProgress');
+            
+            if (modeText && modeProgress) {
+                switch (currentPhase) {
+                    case 'idle':
+                        modeText.textContent = 'IDLE MODE';
+                        modeProgress.textContent = 'System Ready';
+                        modeText.style.color = '#888';
+                        break;
+                    case 'drying':
+                        modeText.textContent = 'DRYING MODE';
+                        modeProgress.textContent = `Day ${phaseDay} of ${totalPhaseDays}`;
+                        modeText.style.color = '#FFD700';
+                        break;
+                    case 'curing':
+                        modeText.textContent = 'CURING MODE';
+                        modeProgress.textContent = `Day ${phaseDay} of ${totalPhaseDays}`;
+                        modeText.style.color = '#8858ed';
+                        break;
+                    case 'storage':
+                        modeText.textContent = 'STORAGE MODE';
+                        modeProgress.textContent = 'Process Complete';
+                        modeText.style.color = '#00E515';
+                        break;
+                    default:
+                        modeText.textContent = 'UNKNOWN';
+                        modeProgress.textContent = 'Check System';
+                        modeText.style.color = '#FF4444';
+                }
+            }
+        }
+
+        // 4. ADD this new function to update progress bars:
+        function updateProgressBars() {
+            // Update Drying Phase
+            const dryingHeader = document.querySelector('.status-phase:first-child .phase-header');
+            const dryingBar = document.querySelector('.status-phase:first-child .phase-fill');
+            const dryingText = document.querySelector('.status-phase:first-child .phase-text');
+            
+            if (dryingBar && dryingText) {
+                dryingBar.style.width = `${dryingProgress}%`;
+                dryingText.textContent = dryingProgress >= 100 ? '100% COMPLETE' : `${dryingProgress}%`;
+                
+                // Update classes based on progress
+                if (dryingProgress >= 100) {
+                    dryingBar.classList.add('complete');
+                    dryingBar.classList.remove('active');
+                } else if (dryingProgress > 0) {
+                    dryingBar.classList.add('active');
+                    dryingBar.classList.remove('complete');
+                } else {
+                    dryingBar.classList.remove('active', 'complete');
+                }
+            }
+            
+            // Update phase header time
+            if (dryingHeader) {
+                const timeDiv = dryingHeader.querySelector('.phase-time');
+                if (timeDiv) {
+                    if (dryingProgress >= 100) {
+                        timeDiv.textContent = 'Complete';
+                        timeDiv.style.color = '#00E515';
+                    } else if (currentPhase === 'drying') {
+                        const remainingDays = totalPhaseDays - phaseDay;
+                        timeDiv.textContent = `${remainingDays}d remaining`;
+                        timeDiv.style.color = '#FFD700';
+                    } else {
+                        timeDiv.textContent = 'Not Started';
+                        timeDiv.style.color = '#888';
+                    }
+                }
+            }
 
         // Navigation functions
         function goHome() {
