@@ -320,6 +320,112 @@ class PrecisionVPDController:
         
         return current_setpoint
     
+    def get_system_status(self):
+        """Get complete system status for API - handles dict or object sensor data"""
+        
+        # Initialize with defaults
+        if not hasattr(self, 'current_phase'):
+            self.current_phase = DryingPhase.DRY_INITIAL
+        
+        if not hasattr(self, 'sensor_readings'):
+            self.sensor_readings = []
+        
+        if not hasattr(self, 'process_start_time'):
+            self.process_start_time = None
+        
+        if not hasattr(self, 'process_active'):
+            self.process_active = False
+        
+        if not hasattr(self, 'equipment_states'):
+            self.equipment_states = {}
+        
+        # Get current phase and setpoints
+        current_phase = self.current_phase
+        phase_settings = self.phase_setpoints.get(current_phase, self.phase_setpoints[DryingPhase.DRY_INITIAL])
+        
+        # Get sensor averages
+        avg_temp = 68.0
+        avg_humidity = 60.0
+        avg_vpd = 0.75
+        
+        # Handle sensor readings whether they're dicts, objects, or strings
+        if self.sensor_readings and len(self.sensor_readings) > 0:
+            temps = []
+            humids = []
+            vpds = []
+            
+            for reading in self.sensor_readings:
+                # Skip if reading is None or a string
+                if reading is None or isinstance(reading, str):
+                    continue
+                    
+                # Handle dictionary format
+                if isinstance(reading, dict):
+                    if 'temperature' in reading and reading['temperature'] is not None:
+                        temps.append(float(reading['temperature']))
+                    if 'humidity' in reading and reading['humidity'] is not None:
+                        humids.append(float(reading['humidity']))
+                    if 'vpd_kpa' in reading and reading['vpd_kpa'] is not None:
+                        vpds.append(float(reading['vpd_kpa']))
+                # Handle object format (SensorReading objects)
+                else:
+                    if hasattr(reading, 'temperature') and reading.temperature is not None:
+                        temps.append(float(reading.temperature))
+                    if hasattr(reading, 'humidity') and reading.humidity is not None:
+                        humids.append(float(reading.humidity))
+                    if hasattr(reading, 'vpd_kpa') and reading.vpd_kpa is not None:
+                        vpds.append(float(reading.vpd_kpa))
+            
+            # Calculate averages
+            if temps:
+                avg_temp = sum(temps) / len(temps)
+            if humids:
+                avg_humidity = sum(humids) / len(humids)
+            if vpds:
+                avg_vpd = sum(vpds) / len(vpds)
+            elif temps and humids:
+                # Calculate VPD if we have temp and humidity but no VPD values
+                temp_c = (avg_temp - 32) * 5/9
+                svp = 0.6108 * (2.71828 ** ((17.27 * temp_c) / (temp_c + 237.3)))
+                avp = svp * (avg_humidity / 100)
+                avg_vpd = svp - avp
+        
+        # Calculate process time
+        elapsed_hours = 0
+        current_day = 1
+        if self.process_start_time:
+            elapsed = datetime.now() - self.process_start_time
+            elapsed_hours = elapsed.total_seconds() / 3600
+            current_day = elapsed.days + 1
+        
+        # Build response
+        status = {
+            'current_phase': current_phase.value if hasattr(current_phase, 'value') else str(current_phase),
+            'current_day': current_day,
+            'elapsed_hours': elapsed_hours,
+            'current_vpd': float(avg_vpd),
+            'vpd_target_min': float(phase_settings.vpd_min),
+            'vpd_target_max': float(phase_settings.vpd_max),
+            'current_temp': float(avg_temp),
+            'current_humidity': float(avg_humidity),
+            'temp_target': float(phase_settings.temp_target),
+            'humidity_min': float(phase_settings.humidity_min),
+            'humidity_max': float(phase_settings.humidity_max),
+            'dew_point_target': float(phase_settings.dew_point_target),
+            'process_active': self.process_active,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # Add equipment states if they exist
+        if self.equipment_states:
+            try:
+                status['equipment_states'] = {k: v.value if hasattr(v, 'value') else str(v) 
+                                            for k, v in self.equipment_states.items()}
+            except:
+                status['equipment_states'] = {}
+        
+        return status
+
     def calculate_control_action(self) -> Dict[str, EquipmentState]:
         """Calculate equipment control based on dew point and VPD targets"""
         avg_temp, avg_humidity, avg_dew_point, avg_vpd = self.get_dry_room_conditions()
