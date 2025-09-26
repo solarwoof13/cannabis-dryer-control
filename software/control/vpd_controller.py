@@ -214,22 +214,35 @@ class PrecisionVPDController:
     
     def get_dry_room_conditions(self) -> Tuple[float, float, float, float]:
         """Get average conditions from drying room sensors only"""
-        # Collect all dry room sensors regardless of naming convention
         readings = []
         
         for sensor_id, reading in self.sensor_readings.items():
-            # Accept sensors that start with 'dry'
-            if sensor_id.startswith('dry') and reading:
+            # Skip if it's not a dry room sensor
+            if not sensor_id.startswith('dry'):
+                continue
+                
+            # Check what type the reading actually is
+            if isinstance(reading, str):
+                logger.error(f"Sensor {sensor_id} contains string instead of SensorReading object: {reading}")
+                continue
+                
+            if reading is None:
+                logger.warning(f"Sensor {sensor_id} has None value")
+                continue
+                
+            # Only add if it has the required attributes
+            if hasattr(reading, 'temperature') and hasattr(reading, 'humidity'):
                 readings.append(reading)
+            else:
+                logger.error(f"Sensor {sensor_id} missing temperature or humidity attributes")
         
         if not readings:
-            # No sensors available - raise error instead of faking data
-            raise ValueError("No dry room sensor data available")
+            raise ValueError("No valid dry room sensor data available")
         
         avg_temp = np.mean([r.temperature for r in readings])
         avg_humidity = np.mean([r.humidity for r in readings])
-        avg_dew_point = np.mean([r.dew_point for r in readings])
-        avg_vpd = np.mean([r.vpd_kpa for r in readings])
+        avg_dew_point = np.mean([r.dew_point for r in readings if hasattr(r, 'dew_point')])
+        avg_vpd = np.mean([r.vpd_kpa for r in readings if hasattr(r, 'vpd_kpa')])
         
         return avg_temp, avg_humidity, avg_dew_point, avg_vpd
     
