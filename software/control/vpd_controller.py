@@ -214,28 +214,22 @@ class PrecisionVPDController:
     
     def get_dry_room_conditions(self) -> Tuple[float, float, float, float]:
         """Get average conditions from drying room sensors only"""
-        dry_sensors = ['dry_room_1', 'dry_room_2', 'dry_room_3', 'dry_room_4']
-        readings = [self.sensor_readings[s] for s in dry_sensors 
-                if s in self.sensor_readings]
+        # Collect all dry room sensors regardless of naming convention
+        readings = []
+        
+        for sensor_id, reading in self.sensor_readings.items():
+            # Accept sensors that start with 'dry'
+            if sensor_id.startswith('dry') and reading:
+                readings.append(reading)
         
         if not readings:
-            # No sensor data - raise an exception or return None
-            logger.error("CRITICAL: No dry room sensors available!")
-            raise ValueError("No dry room sensor data available - cannot calculate conditions")
-        
-        # Only proceed if we have actual data
-        if len(readings) < 2:
-            logger.warning(f"Only {len(readings)} dry room sensor(s) active - redundancy compromised")
+            # No sensors available - raise error instead of faking data
+            raise ValueError("No dry room sensor data available")
         
         avg_temp = np.mean([r.temperature for r in readings])
         avg_humidity = np.mean([r.humidity for r in readings])
         avg_dew_point = np.mean([r.dew_point for r in readings])
         avg_vpd = np.mean([r.vpd_kpa for r in readings])
-        
-        # Check for sensor variance (detect failing sensors)
-        temp_variance = np.std([r.temperature for r in readings])
-        if temp_variance > self.max_sensor_variance:
-            logger.warning(f"High temperature variance between sensors: {temp_variance:.1f}°F")
         
         return avg_temp, avg_humidity, avg_dew_point, avg_vpd
     
