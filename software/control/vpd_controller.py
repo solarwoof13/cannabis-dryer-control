@@ -14,21 +14,6 @@ from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Tuple
 from enum import Enum
 from collections import deque
-from dataclasses import dataclass
-
-@dataclass
-class VPDSetpoint:
-    """Setpoint configuration for each phase"""
-    phase: DryingPhase
-    temperature_target: float
-    temperature_tolerance: float
-    dew_point_target: float
-    dew_point_tolerance: float
-    humidity_min: float
-    humidity_max: float
-    vpd_min: float
-    vpd_max: float
-    hours_in_phase: int
 
 # Configure logging
 logging.basicConfig(
@@ -37,6 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# MOVE DryingPhase HERE - BEFORE it's used in VPDSetpoint
 class DryingPhase(Enum):
     """Drying phase enumeration with precise timing"""
     DRY_INITIAL = "dry_initial"      # Day 1-2: 48 hours
@@ -51,6 +37,21 @@ class EquipmentState(Enum):
     OFF = "OFF"
     ON = "ON"
     ERROR = "ERROR"
+
+# NOW VPDSetpoint can use DryingPhase
+@dataclass
+class VPDSetpoint:
+    """Setpoint configuration for each phase"""
+    phase: DryingPhase
+    temperature_target: float
+    temperature_tolerance: float
+    dew_point_target: float
+    dew_point_tolerance: float
+    humidity_min: float
+    humidity_max: float
+    vpd_min: float
+    vpd_max: float
+    hours_in_phase: int
 
 @dataclass
 class SensorReading:
@@ -108,6 +109,7 @@ class ControlSetpoint:
     duration_hours: float       # Phase duration in hours
     air_changes_per_hour: int   # Target air changes (6-10)
 
+# Now your PrecisionVPDController class continues as-is...
 class PrecisionVPDController:
     """Precision VPD-based control system mimicking Cannatrol approach"""
     
