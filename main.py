@@ -24,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration - SET THIS BASED ON YOUR ENVIRONMENT
-SIMULATION_MODE = False  # Set to True ONLY for testing without sensors
+SIMULATION_MODE = True  # Set to True ONLY for testing without sensors
 
 # Detect if running on Raspberry Pi
 def is_raspberry_pi():

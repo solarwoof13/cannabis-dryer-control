@@ -14,6 +14,21 @@ from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Tuple
 from enum import Enum
 from collections import deque
+from dataclasses import dataclass
+
+@dataclass
+class VPDSetpoint:
+    """Setpoint configuration for each phase"""
+    phase: DryingPhase
+    temperature_target: float
+    temperature_tolerance: float
+    dew_point_target: float
+    dew_point_tolerance: float
+    humidity_min: float
+    humidity_max: float
+    vpd_min: float
+    vpd_max: float
+    hours_in_phase: int
 
 # Configure logging
 logging.basicConfig(
@@ -101,8 +116,8 @@ class PrecisionVPDController:
         self.phase_start_time = datetime.now()
         self.sensor_readings: Dict[str, SensorReading] = {}
         self.process_start_time = None  
-        self.process_active = False     
-        self.equipment_states = {}      
+        self.process_active = False      
+        self.phase = self.current_phase  # Compatibility alias    
         
         # Equipment states - matching your actual equipment
         self.equipment_states = {
