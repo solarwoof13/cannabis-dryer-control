@@ -692,7 +692,7 @@ class PrecisionVPDController:
                 
                 # Log status
                 status = self.get_system_status()
-                logger.info(f"[{status['phase']}] Progress: {status['progress']:.1f}% | "
+                logger.info(f"[{status.get('phase', self.current_phase.value)}] Progress: {status.get('progress', 0):.1f}% | "
                         f"Temp: {status['temperature']}°F | RH: {status['humidity']}% | "
                         f"DP: {status['dew_point']}°F | VPD: {status['vpd_current']} kPa | "
                         f"aW: ~{status['water_activity_estimate']:.3f}")
