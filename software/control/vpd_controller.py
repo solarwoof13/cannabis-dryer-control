@@ -673,7 +673,18 @@ class PrecisionVPDController:
         
         while True:
             try:
-                # Calculate control action
+                # Read sensors and update readings FIRST!
+                if self.hardware_mode and self.sensor_manager:
+                    readings = self.sensor_manager.read_all_sensors()
+                    for sensor_id, reading in readings.items():
+                        if reading and reading.get('status') == 'ok':
+                            self.update_sensor_reading(
+                                sensor_id,
+                                reading['temperature'],
+                                reading['humidity']
+                            )
+                
+                # THEN calculate control action
                 new_states = self.calculate_control_action()
                 
                 # Update equipment states
@@ -682,9 +693,9 @@ class PrecisionVPDController:
                 # Log status
                 status = self.get_system_status()
                 logger.info(f"[{status['phase']}] Progress: {status['progress']:.1f}% | "
-                          f"Temp: {status['temperature']}°F | RH: {status['humidity']}% | "
-                          f"DP: {status['dew_point']}°F | VPD: {status['vpd_current']} kPa | "
-                          f"aW: ~{status['water_activity_estimate']:.3f}")
+                        f"Temp: {status['temperature']}°F | RH: {status['humidity']}% | "
+                        f"DP: {status['dew_point']}°F | VPD: {status['vpd_current']} kPa | "
+                        f"aW: ~{status['water_activity_estimate']:.3f}")
                 
                 # Sleep before next iteration
                 time.sleep(10)  # Run control loop every 10 seconds
