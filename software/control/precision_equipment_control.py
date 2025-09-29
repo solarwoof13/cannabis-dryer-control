@@ -30,6 +30,36 @@ class PrecisionEquipmentController:
     def __init__(self, vpd_controller):
         self.vpd_controller = vpd_controller
         
+        # Initialize GPIO FIRST
+        self.gpio_initialized = False
+        try:
+            import RPi.GPIO as GPIO
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setwarnings(False)
+            
+            # GPIO pin mapping
+            self.gpio_pins = {
+                'dehum': 17,
+                'hum_solenoid': 27,
+                'hum_fan': 25,
+                'erv': 22,
+                'supply_fan': 23,
+                'return_fan': 24
+            }
+            
+            # Setup all pins as outputs
+            for equipment, pin in self.gpio_pins.items():
+                GPIO.setup(pin, GPIO.OUT)
+                GPIO.output(pin, GPIO.HIGH)  # Start OFF (HIGH = OFF for active LOW relays)
+                logger.info(f"GPIO {pin} initialized for {equipment} (OFF)")
+            
+            self.gpio_initialized = True
+            logger.info("GPIO initialization complete")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize GPIO: {e}")
+            self.gpio_pins = {}
+        
         # Control modes for each equipment (AUTO, ON, OFF)
         self.control_modes = {
             'dehum': ControlMode.AUTO,
