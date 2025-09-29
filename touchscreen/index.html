@@ -1402,88 +1402,32 @@
                 .then(data => {
                     console.log('Sensor data:', data);
                     
-                    // Update Zone 1 (dry1 from backend)
-                    if (data.dry1) {
-                        const zone1Temp = document.querySelector('[data-sensor="zone1-temp"]');
-                        if (zone1Temp) {
-                            zone1Temp.innerHTML = Math.round(data.dry1.temp) + '<span class="sensor-unit">°F</span>';
-                        }
-                        const zone1Humid = document.querySelector('[data-sensor="zone1-humid"]');
-                        if (zone1Humid) {
-                            zone1Humid.innerHTML = Math.round(data.dry1.humidity) + '<span class="sensor-unit-humid">%</span>';
-                        }
+                    // Update Zone 1 (REAL DATA from dry_room_1)
+                    if (data.dry_room_1 && data.dry_room_1.temperature !== null) {
+                        document.querySelector('[data-sensor="zone1-temp"]').innerHTML = 
+                            Math.round(data.dry_room_1.temperature) + '<span class="sensor-unit">°F</span>';
+                        document.querySelector('[data-sensor="zone1-humid"]').innerHTML = 
+                            Math.round(data.dry_room_1.humidity) + '<span class="sensor-unit-humid">%</span>';
                     }
                     
-                    // Update Zone 2
-                    if (data.dry2) {
-                        const zone2Temp = document.querySelector('[data-sensor="zone2-temp"]');
-                        if (zone2Temp) {
-                            zone2Temp.innerHTML = Math.round(data.dry2.temp) + '<span class="sensor-unit">°F</span>';
-                        }
-                        const zone2Humid = document.querySelector('[data-sensor="zone2-humid"]');
-                        if (zone2Humid) {
-                            zone2Humid.innerHTML = Math.round(data.dry2.humidity) + '<span class="sensor-unit-humid">%</span>';
-                        }
-                    }
-                    
-                    // Update Zone 3
-                    if (data.dry3) {
-                        const zone3Temp = document.querySelector('[data-sensor="zone3-temp"]');
-                        if (zone3Temp) {
-                            zone3Temp.innerHTML = Math.round(data.dry3.temp) + '<span class="sensor-unit">°F</span>';
-                        }
-                        const zone3Humid = document.querySelector('[data-sensor="zone3-humid"]');
-                        if (zone3Humid) {
-                            zone3Humid.innerHTML = Math.round(data.dry3.humidity) + '<span class="sensor-unit-humid">%</span>';
-                        }
-                    }
-                    
-                    // Update Zone 4
-                    if (data.dry4) {
-                        const zone4Temp = document.querySelector('[data-sensor="zone4-temp"]');
-                        if (zone4Temp) {
-                            zone4Temp.innerHTML = Math.round(data.dry4.temp) + '<span class="sensor-unit">°F</span>';
-                        }
-                        const zone4Humid = document.querySelector('[data-sensor="zone4-humid"]');
-                        if (zone4Humid) {
-                            zone4Humid.innerHTML = Math.round(data.dry4.humidity) + '<span class="sensor-unit-humid">%</span>';
-                        }
-                    }
-                    
-                    // Update Supply Duct
-                    if (data.supply) {
-                        const supplyTemp = document.querySelector('[data-sensor="supply"]');
-                        if (supplyTemp) {
-                            supplyTemp.innerHTML = Math.round(data.supply.temp) + '<span class="sensor-unit">°F</span>';
-                        }
+                    // Update Supply (REAL DATA from supply_duct)
+                    if (data.supply_duct && data.supply_duct.temperature !== null) {
+                        document.querySelector('[data-sensor="supply"]').innerHTML = 
+                            Math.round(data.supply_duct.temperature) + '<span class="sensor-unit">°F</span>';
                         const supplyRH = document.querySelector('[data-sensor="supply-rh"]');
                         if (supplyRH) {
-                            supplyRH.innerHTML = Math.round(data.supply.humidity) + '<span class="sensor-unit">%</span>';
+                            supplyRH.innerHTML = Math.round(data.supply_duct.humidity) + '<span class="sensor-unit">%</span>';
                         }
                     }
                     
-                    // Update Air Room
-                    if (data.air) {
-                        const airTemp = document.querySelector('[data-sensor="air-temp"]');
-                        if (airTemp) {
-                            airTemp.innerHTML = Math.round(data.air.temp) + '<span class="sensor-unit">°F</span>';
-                        }
-                        const airHumid = document.querySelector('[data-sensor="air-humid"]');
-                        if (airHumid) {
-                            airHumid.innerHTML = Math.round(data.air.humidity) + '<span class="sensor-unit-humid">%</span>';
-                        }
-                    }
-                    
-                    // Calculate room averages from all drying room sensors
+                    // Calculate room averages (only from real sensors)
                     let temps = [];
                     let humids = [];
                     
-                    ['dry1', 'dry2', 'dry3', 'dry4'].forEach(sensorId => {
-                        if (data[sensorId] && data[sensorId].temp !== null) {
-                            temps.push(data[sensorId].temp);
-                            humids.push(data[sensorId].humidity);
-                        }
-                    });
+                    if (data.dry_room_1 && data.dry_room_1.temperature !== null) {
+                        temps.push(data.dry_room_1.temperature);
+                        humids.push(data.dry_room_1.humidity);
+                    }
                     
                     if (temps.length > 0) {
                         const avgTemp = temps.reduce((a,b) => a+b, 0) / temps.length;
@@ -1505,25 +1449,12 @@
                     console.log('System status:', data);
                     
                     // Update VPD
-                    if (data.current_vpd !== undefined) {
-                        currentVPD = data.current_vpd;
+                    if (data.vpd_current !== undefined) {
+                        currentVPD = data.vpd_current;
                         updateVPDDisplay();
                         
                         const vpdEl = document.getElementById('vpd-current');
                         if (vpdEl) vpdEl.textContent = currentVPD.toFixed(2) + ' kPa';
-                        
-                        // Update VPD gauge if you have one
-                        const vpdValue = document.querySelector('.vpd-value');
-                        if (vpdValue) vpdValue.textContent = currentVPD.toFixed(2);
-                    }
-                    
-                    // Update target VPD range
-                    if (data.vpd_target_min !== undefined && data.vpd_target_max !== undefined) {
-                        targetVPD = (data.vpd_target_min + data.vpd_target_max) / 2;
-                        const targetEl = document.querySelector('.vpd-target');
-                        if (targetEl) {
-                            targetEl.textContent = `Target: ${data.vpd_target_min.toFixed(2)}-${data.vpd_target_max.toFixed(2)} kPa`;
-                        }
                     }
                     
                     // Update dew point
@@ -1539,68 +1470,44 @@
                     }
                     
                     // Update phase/mode
-                    if (data.mode) {
+                    if (data.phase) {
                         const modeEl = document.getElementById('modeText');
-                        if (modeEl) modeEl.textContent = data.mode;
-                    }
-                    
-                    // Update phase progress
-                    if (data.phase_day !== undefined && data.phase_total_days !== undefined) {
-                        const progressEl = document.getElementById('modeProgress');
-                        if (progressEl) {
-                            const progressPercent = (data.phase_day / data.phase_total_days) * 100;
-                            progressEl.textContent = `Day ${data.phase_day} of ${data.phase_total_days} (${progressPercent.toFixed(0)}%)`;
-                        }
+                        if (modeEl) modeEl.textContent = data.phase.replace(/_/g, ' ').toUpperCase();
                         
-                        // Update progress bars if you have them
-                        const phaseBar = document.querySelector('.phase-fill.active');
-                        if (phaseBar) {
-                            phaseBar.style.width = `${progressPercent}%`;
-                            const phaseText = phaseBar.querySelector('.phase-text');
-                            if (phaseText) {
-                                phaseText.textContent = `${progressPercent.toFixed(0)}%`;
-                            }
+                        const progressEl = document.getElementById('modeProgress');
+                        if (progressEl && data.progress !== undefined) {
+                            progressEl.textContent = `Progress: ${data.progress.toFixed(1)}%`;
                         }
                     }
                     
-                    // Update equipment status - CRITICAL FOR RELAY STATUS DISPLAY
+                    // Update equipment status - THIS IS THE CRITICAL PART FOR RELAY STATUS
                     if (data.equipment) {
                         console.log('Equipment status:', data.equipment);
                         
-                        // Map backend equipment names to frontend display elements
-                        const equipmentMapping = {
-                            'dehumidifier': 'dehumidifier',
-                            'humidifier': 'humidifier',
+                        const equipMap = {
+                            'dehum': 'dehumidifier',
+                            'hum_solenoid': 'humidifier',
+                            'hum_fan': 'humidifier',
                             'erv': 'erv',
+                            'mini_split': 'mini_split',
                             'supply_fan': 'supply_fan',
-                            'return_fan': 'exhaust_fan',
-                            'humidifier_fan': 'humidifier',
-                            'mini_split': 'mini_split'
+                            'return_fan': 'exhaust_fan'
                         };
                         
                         Object.entries(data.equipment).forEach(([backendName, state]) => {
-                            const frontendName = equipmentMapping[backendName] || backendName;
-                            
-                            // Find element by data-equipment attribute
+                            const frontendName = equipMap[backendName] || backendName;
                             const element = document.querySelector(`[data-equipment="${frontendName}"]`);
-                            if (!element) {
-                                // Try finding by class name
-                                const altElement = document.querySelector(`.equipment-item.${frontendName}`);
-                                if (altElement) {
-                                    updateEquipmentElement(altElement, state);
+                            if (element) {
+                                // Remove all state classes first
+                                element.classList.remove('off', 'on', 'idle');
+                                // Add the new state class
+                                element.classList.add(state.toLowerCase());
+                                // Update the status text
+                                const statusText = element.querySelector('.equipment-status-text');
+                                if (statusText) {
+                                    statusText.textContent = state.toUpperCase();
                                 }
-                            } else {
-                                updateEquipmentElement(element, state);
                             }
-                            
-                            // Also update any equipment items with onclick handlers
-                            const onclickElements = document.querySelectorAll('.equipment-item');
-                            onclickElements.forEach(el => {
-                                const onclick = el.getAttribute('onclick');
-                                if (onclick && onclick.includes(frontendName)) {
-                                    updateEquipmentElement(el, state);
-                                }
-                            });
                         });
                     }
                     
@@ -1608,12 +1515,6 @@
                     if (data.cycle_state) {
                         cycleState = data.cycle_state;
                         updateButtonStates();
-                    }
-                    
-                    // Update any alerts
-                    if (data.alerts && data.alerts.length > 0) {
-                        console.log('Active alerts:', data.alerts);
-                        // You can add alert display logic here
                     }
                 })
                 .catch(error => console.error('Error fetching status:', error));
