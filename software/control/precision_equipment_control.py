@@ -99,6 +99,15 @@ class PrecisionEquipmentController:
         self.vpd_deadband = 0.05  # kPa
         self.dew_point_deadband = 0.5  # °F
 
+        # Apply initial states to GPIO hardware
+        if self.gpio_initialized:
+            for equipment, state in self.actual_states.items():
+                if equipment in self.gpio_pins:
+                    pin = self.gpio_pins[equipment]
+                    gpio_state = GPIO.LOW if state == 'ON' else GPIO.HIGH
+                    GPIO.output(pin, gpio_state)
+                    logger.info(f"Initial state applied: {equipment} = {state} (GPIO {pin} = {'LOW' if state == 'ON' else 'HIGH'})")
+
     def set_control_mode(self, equipment: str, mode: str):
         """Set control mode for equipment (AUTO/ON/OFF)"""
         if equipment in self.control_modes:
