@@ -1026,27 +1026,20 @@
                     phaseDay = data.phase_day || 0;
                     totalPhaseDays = data.phase_total_days || 0;
                     
-                    // Update with REAL values from your controller
+                    // Update VPD values
                     currentVPD = data.current_vpd;
                     VPD_TARGET_MIN = data.vpd_target_min;
                     VPD_TARGET_MAX = data.vpd_target_max;
-                    systemState = data.system_state || 'idle';
-                    currentPhase = data.phase || 'idle';
-                    dryingProgress = data.drying_progress || 0;
-                    curingProgress = data.curing_progress || 0;
-                    phaseDay = data.phase_day || 0;
-                    totalPhaseDays = data.phase_total_days || 0;
                     
-                    // ADD THESE NEW FUNCTION CALLS:
-                    updateSystemModeDisplay();
-                    updateProgressBars();
-
                     // Update all displays
+                    updateDashboard();  // This fetches and updates sensor displays
                     updateSystemModeDisplay();
                     updateProgressBars();
                     updateVPDDisplay();
-                    updateSensorDisplays(data.sensors);
-                    updateEquipmentStatus(data.equipment);
+                    
+                    // These might not be needed since updateDashboard handles sensors
+                    // updateSensorDisplays(data.sensors);
+                    // updateEquipmentStatus(data.equipment);
                 })
                 .catch(error => {
                     console.log('Waiting for backend...', error);
