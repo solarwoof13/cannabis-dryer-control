@@ -68,6 +68,7 @@ def main():
     logger.info("Initializing VPD Controller...")
     controller = PrecisionVPDController()
     equipment_controller = PrecisionEquipmentController(controller)
+    logger.info(f"Equipment controller created: {equipment_controller}")
     
     # Check hardware mode vs simulation
     if controller.hardware_mode and not SIMULATION_MODE:
@@ -94,6 +95,7 @@ def main():
     def enhanced_control_loop():
         while True:
             try:
+                logger.info("Control loop iteration starting...")
                 # Let the VPD controller read sensors and calculate
                 if controller.hardware_mode and controller.sensor_manager:
                     readings = controller.sensor_manager.read_all_sensors()
@@ -107,6 +109,7 @@ def main():
                 
                 # Now update equipment using your precise control logic
                 equipment_controller.update_equipment()
+                logger.info(f"Equipment states: {equipment_controller.actual_states}")
                 
                 # Log status
                 status = controller.get_system_status()
