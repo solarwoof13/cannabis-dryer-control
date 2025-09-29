@@ -1051,7 +1051,7 @@
                 
         }
 
-        // Update the VPD display function to use the new variables
+       // Update the VPD display function to use the new variables
         function updateVPDDisplay() {
             const vpdValue = document.getElementById('vpdValue');
             const vpdIndicator = document.getElementById('vpdIndicator');
@@ -1090,9 +1090,40 @@
                 rangeValues[1].style.textShadow = `0 0 10px ${statusColor}40`;
             }
             
+            if (vpdIndicator) {
+                // Update indicator position (0.3 to 2.0 kPa range)
+                const position = ((currentVPD - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
+                vpdIndicator.style.left = `${Math.max(0, Math.min(100, position))}%`;
+                vpdIndicator.style.transform = 'translateX(-50%)'; // Center the triangle
+                
+                // Update indicator color based on status
+                const warningTolerance = 0.1;
+                if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
+                    vpdIndicator.style.background = '#00E515';
+                    vpdIndicator.style.boxShadow = '0 0 15px #00E515';
+                } else if (currentVPD >= (VPD_TARGET_MIN - warningTolerance) && currentVPD <= (VPD_TARGET_MAX + warningTolerance)) {
+                    vpdIndicator.style.background = '#FFD700';
+                    vpdIndicator.style.boxShadow = '0 0 15px #FFD700';
+                } else {
+                    vpdIndicator.style.background = '#FF4444';
+                    vpdIndicator.style.boxShadow = '0 0 15px #FF4444';
+                }
+            }
+            
+            // Update VPD value color based on status
+            if (vpdValue) {
+                if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
+                    vpdValue.style.background = 'linear-gradient(135deg, #00C310, #00E515)';
+                } else if (currentVPD >= (VPD_TARGET_MIN - 0.1) && currentVPD <= (VPD_TARGET_MAX + 0.1)) {
+                    vpdValue.style.background = 'linear-gradient(135deg, #FFA500, #FFD700)';
+                } else {
+                    vpdValue.style.background = 'linear-gradient(135deg, #FF4444, #FF6666)';
+                }
+                vpdValue.style.webkitBackgroundClip = 'text';
+                vpdValue.style.webkitTextFillColor = 'transparent';
+            }
         }
 
-        // NEW FUNCTION 1: Add this entire function
         function updateSystemModeDisplay() {
             const modeText = document.getElementById('modeText');
             const modeProgress = document.getElementById('modeProgress');
@@ -1127,7 +1158,6 @@
             }
         }
 
-        // NEW FUNCTION 2: Add this entire function
         function updateProgressBars() {
             // Update Drying Phase
             const dryingHeader = document.querySelector('.status-phase:first-child .phase-header');
@@ -1166,7 +1196,7 @@
                 }
             }
             
-            // Update Curing Phase (paste the code you showed here)
+            // Update Curing Phase
             const curingHeader = document.querySelector('.status-phase:last-child .phase-header');
             const curingBar = document.querySelector('.status-phase:last-child .phase-fill');
             const curingText = document.querySelector('.status-phase:last-child .phase-text');
@@ -1206,9 +1236,8 @@
                     }
                 }
             }
-        }
+        }  // THIS CLOSING BRACE WAS MISSING!
 
-        // NEW FUNCTION 3: Add the start process function
         function startProcess() {
             if (systemState !== 'idle' && systemState !== 'complete') {
                 alert('Process already running!');
@@ -1257,156 +1286,6 @@
                 dateElement.textContent = now.toLocaleDateString('en-US', dateOptions).toUpperCase();
             }
         }
-
-        // Update VPD Display
-        function updateVPDDisplay() {
-            const vpdValue = document.getElementById('vpdValue');
-            const vpdIndicator = document.getElementById('vpdIndicator');
-            
-            if (vpdValue) {
-                vpdValue.textContent = currentVPD.toFixed(2);
-            }
-            
-            // Update Target range display (first range-value)
-            const rangeValues = document.querySelectorAll('.vpd-range .range-value');
-            if (rangeValues[0]) {
-                rangeValues[0].textContent = `${VPD_TARGET_MIN.toFixed(2)}-${VPD_TARGET_MAX.toFixed(2)}`;
-            }
-            
-            // Update Current Status with dynamic color (second range-value)
-            if (rangeValues[1]) {
-                const warningTolerance = 0.1;
-                let statusText = '';
-                let statusColor = '';
-                
-                if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
-                    statusText = 'OPTIMAL';
-                    statusColor = '#00E515';
-                } else if (currentVPD >= (VPD_TARGET_MIN - warningTolerance) && currentVPD <= (VPD_TARGET_MAX + warningTolerance)) {
-                    statusText = 'WARNING';
-                    statusColor = '#FFD700';
-                } else {
-                    statusText = 'CRITICAL';
-                    statusColor = '#FF4444';
-                }
-                
-                rangeValues[1].textContent = statusText;
-                rangeValues[1].style.color = statusColor;
-                rangeValues[1].style.fontWeight = '700';
-                rangeValues[1].style.textShadow = `0 0 10px ${statusColor}40`;
-                rangeValues[1].style.transition = 'all 0.3s ease';
-            }
-            
-            if (vpdIndicator) {
-                // Update indicator position (0.3 to 2.0 kPa range)
-                const position = ((currentVPD - VPD_MIN) / (VPD_MAX - VPD_MIN)) * 100;
-                vpdIndicator.style.left = `${Math.max(0, Math.min(100, position))}%`;
-                vpdIndicator.style.transform = 'translateX(-50%)'; // Center the triangle
-                
-                // Update indicator color based on status
-                const warningTolerance = 0.1;
-                if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
-                    vpdIndicator.style.background = '#00E515';
-                    vpdIndicator.style.boxShadow = '0 0 15px #00E515';
-                } else if (currentVPD >= (VPD_TARGET_MIN - warningTolerance) && currentVPD <= (VPD_TARGET_MAX + warningTolerance)) {
-                    vpdIndicator.style.background = '#FFD700';
-                    vpdIndicator.style.boxShadow = '0 0 15px #FFD700';
-                } else {
-                    vpdIndicator.style.background = '#FF4444';
-                    vpdIndicator.style.boxShadow = '0 0 15px #FF4444';
-                }
-            }
-            
-            // Update VPD value color based on status
-            if (vpdValue) {
-                if (currentVPD >= VPD_TARGET_MIN && currentVPD <= VPD_TARGET_MAX) {
-                    vpdValue.style.background = 'linear-gradient(135deg, #00C310, #00E515)';
-                } else if (currentVPD >= (VPD_TARGET_MIN - 0.1) && currentVPD <= (VPD_TARGET_MAX + 0.1)) {
-                    vpdValue.style.background = 'linear-gradient(135deg, #FFA500, #FFD700)';
-                } else {
-                    vpdValue.style.background = 'linear-gradient(135deg, #FF4444, #FF6666)';
-                }
-                vpdValue.style.webkitBackgroundClip = 'text';
-                vpdValue.style.webkitTextFillColor = 'transparent';
-            }
-            
-        }
-
-        // 3. ADD this new function to update the mode display:
-        function updateSystemModeDisplay() {
-            const modeText = document.getElementById('modeText');
-            const modeProgress = document.getElementById('modeProgress');
-            
-            if (modeText && modeProgress) {
-                switch (currentPhase) {
-                    case 'idle':
-                        modeText.textContent = 'IDLE MODE';
-                        modeProgress.textContent = 'System Ready';
-                        modeText.style.color = '#888';
-                        break;
-                    case 'drying':
-                        modeText.textContent = 'DRYING MODE';
-                        modeProgress.textContent = `Day ${phaseDay} of ${totalPhaseDays}`;
-                        modeText.style.color = '#FFD700';
-                        break;
-                    case 'curing':
-                        modeText.textContent = 'CURING MODE';
-                        modeProgress.textContent = `Day ${phaseDay} of ${totalPhaseDays}`;
-                        modeText.style.color = '#8858ed';
-                        break;
-                    case 'storage':
-                        modeText.textContent = 'STORAGE MODE';
-                        modeProgress.textContent = 'Process Complete';
-                        modeText.style.color = '#00E515';
-                        break;
-                    default:
-                        modeText.textContent = 'UNKNOWN';
-                        modeProgress.textContent = 'Check System';
-                        modeText.style.color = '#FF4444';
-                }
-            }
-        }
-
-        // 4. ADD this new function to update progress bars:
-        function updateProgressBars() {
-            // Update Drying Phase
-            const dryingHeader = document.querySelector('.status-phase:first-child .phase-header');
-            const dryingBar = document.querySelector('.status-phase:first-child .phase-fill');
-            const dryingText = document.querySelector('.status-phase:first-child .phase-text');
-            
-            if (dryingBar && dryingText) {
-                dryingBar.style.width = `${dryingProgress}%`;
-                dryingText.textContent = dryingProgress >= 100 ? '100% COMPLETE' : `${dryingProgress}%`;
-                
-                // Update classes based on progress
-                if (dryingProgress >= 100) {
-                    dryingBar.classList.add('complete');
-                    dryingBar.classList.remove('active');
-                } else if (dryingProgress > 0) {
-                    dryingBar.classList.add('active');
-                    dryingBar.classList.remove('complete');
-                } else {
-                    dryingBar.classList.remove('active', 'complete');
-                }
-            }
-            
-            // Update phase header time
-            if (dryingHeader) {
-                const timeDiv = dryingHeader.querySelector('.phase-time');
-                if (timeDiv) {
-                    if (dryingProgress >= 100) {
-                        timeDiv.textContent = 'Complete';
-                        timeDiv.style.color = '#00E515';
-                    } else if (currentPhase === 'drying') {
-                        const remainingDays = totalPhaseDays - phaseDay;
-                        timeDiv.textContent = `${remainingDays}d remaining`;
-                        timeDiv.style.color = '#FFD700';
-                    } else {
-                        timeDiv.textContent = 'Not Started';
-                        timeDiv.style.color = '#888';
-                    }
-                }
-            }
 
         // Navigation functions
         function goHome() {
@@ -1515,7 +1394,7 @@
             }
         }
 
-        // MAIN UPDATE FUNCTION - Combines all updates
+        // MAIN UPDATE FUNCTION - Combines all updates  
         function updateDashboard() {
             // Fetch sensor data
             fetch('/api/sensors')
