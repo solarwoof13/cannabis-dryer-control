@@ -1048,6 +1048,7 @@
                     currentPhase = 'idle';
                     updateSystemModeDisplay();
                 });
+                
         }
 
         // Update the VPD display function to use the new variables
@@ -1239,27 +1240,6 @@
                 });
             }
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize displays with idle state
-            updateSystemModeDisplay();
-            updateProgressBars();
-            
-            // Get initial data
-            updateFromController();
-            
-            // Update every 2 seconds
-            setInterval(updateFromController, 2000);
-            
-            // Keep your existing clock update
-            setInterval(updateClock, 1000);
-            
-            // Hook up the start button
-            const startBtn = document.querySelector('.start-button');
-            if (startBtn) {
-                startBtn.onclick = startProcess;
-            }
-        });
 
         // Update time and date
         function updateClock() {
@@ -1535,51 +1515,6 @@
             }
         }
 
-        // Start cycle
-        document.addEventListener('DOMContentLoaded', function() {
-            const startBtn = document.getElementById('start-btn');
-            if (startBtn) {
-                startBtn.addEventListener('click', () => {
-                    if (cycleState !== 'idle') return;
-                    if (confirm('Start drying/curing cycle?')) {
-                        fetch('/api/start-cycle', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({ mode: 'dry', target_vpd: 1.1, setpoint_aw: 0.62 })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Cycle started:', data);
-                            cycleState = 'running';
-                            updateButtonStates();
-                        })
-                        .catch(err => console.error('Start cycle error:', err));
-                    }
-                });
-            }
-
-            // Hold cycle
-            const holdBtn = document.getElementById('hold-btn');
-            if (holdBtn) {
-                holdBtn.addEventListener('click', () => {
-                    if (cycleState !== 'running') return;
-                    const isHolding = cycleState === 'holding';
-                    fetch('/api/hold-cycle', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ maintain_vpd: currentVPD, resume: isHolding })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Cycle hold toggled:', data);
-                        cycleState = isHolding ? 'running' : 'holding';
-                        updateButtonStates();
-                    })
-                    .catch(err => console.error('Hold cycle error:', err));
-                });
-            }
-        });
-
         // MAIN UPDATE FUNCTION - Combines all updates
         function updateDashboard() {
             // Fetch sensor data
@@ -1728,16 +1663,66 @@
             lastTouchEnd = now;
         }, false);
 
-        // Initialize everything
+        // Single consolidated initialization
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all displays
             updateClock();
             updateVPDDisplay();
             updateButtonStates();
             updateDashboard();
+            updateSystemModeDisplay();
+            updateProgressBars();
             
-            // Set up intervals
-            setInterval(updateClock, 60000);      // Update time every minute
-            setInterval(updateDashboard, 2000);  // Update dashboard every 2 seconds
+            // Get initial data from controller
+            updateFromController();
+            
+            // Set up all intervals
+            setInterval(updateClock, 60000);          // Update time every minute
+            setInterval(updateDashboard, 2000);       // Update sensors every 2 seconds
+            setInterval(updateFromController, 2000);  // Update controller every 2 seconds
+            
+            // Hook up the start button
+            const startBtn = document.getElementById('start-btn');
+            if (startBtn) {
+                startBtn.addEventListener('click', () => {
+                    if (cycleState !== 'idle') return;
+                    if (confirm('Start drying/curing cycle?')) {
+                        fetch('/api/start-cycle', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ mode: 'dry', target_vpd: 1.1, setpoint_aw: 0.62 })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Cycle started:', data);
+                            cycleState = 'running';
+                            updateButtonStates();
+                        })
+                        .catch(err => console.error('Start cycle error:', err));
+                    }
+                });
+            }
+            
+            // Hook up the hold button  
+            const holdBtn = document.getElementById('hold-btn');
+            if (holdBtn) {
+                holdBtn.addEventListener('click', () => {
+                    if (cycleState !== 'running') return;
+                    const isHolding = cycleState === 'holding';
+                    fetch('/api/hold-cycle', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ maintain_vpd: currentVPD, resume: isHolding })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Cycle hold toggled:', data);
+                        cycleState = isHolding ? 'running' : 'holding';
+                        updateButtonStates();
+                    })
+                    .catch(err => console.error('Hold cycle error:', err));
+                });
+            }
         });
     </script>
 </body>
