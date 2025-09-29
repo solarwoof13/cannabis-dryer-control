@@ -623,6 +623,41 @@
             border-color: rgba(255, 68, 68, 0.4);
         }
 
+        .equipment-item {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .equipment-mode {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: bold;
+        }
+
+        .equipment-item.auto .equipment-mode {
+            background: #4CAF50;
+        }
+
+        .equipment-item.manual-on .equipment-mode {
+            background: #2196F3;
+        }
+
+        .equipment-item.manual-off .equipment-mode {
+            background: #f44336;
+        }
+
+        .equipment-auto-state {
+            font-size: 9px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 2px;
+        }
+
         /* ALERTS */
         .alerts-card {
             background: linear-gradient(135deg, rgba(255, 68, 68, 0.1), rgba(204, 0, 0, 0.05));
@@ -1348,49 +1383,98 @@
         }
 
         // Toggle equipment
-        function toggleEquipment(element, equipment) {
-            const states = ['on', 'idle', 'off'];
-            let currentState = 'off';
+        function toggleEquipmentMode(element, equipmentId) {
+            // Cycle through modes: AUTO -> ON -> OFF -> AUTO
+            const currentMode = element.dataset.mode || 'AUTO';
+            let newMode;
             
-            states.forEach(state => {
-                if (element.classList.contains(state)) {
-                    currentState = state;
-                    element.classList.remove(state);
-                }
-            });
-            
-            const nextState = states[(states.indexOf(currentState) + 1) % states.length];
-            element.classList.add(nextState);
-            
-            const statusText = element.querySelector('.equipment-status-text');
-            if (statusText) {
-                if (equipment.includes('fan') && nextState === 'on') {
-                    statusText.textContent = '60%';
-                } else {
-                    statusText.textContent = nextState.toUpperCase();
-                }
+            if (currentMode === 'AUTO') {
+                newMode = 'ON';
+            } else if (currentMode === 'ON') {
+                newMode = 'OFF';
+            } else {
+                newMode = 'AUTO';
             }
+            
+            // Send mode change to backend
+            fetch(`/api/equipment/${equipmentId}/mode`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ mode: newMode })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(`${equipmentId} mode changed to ${newMode}`);
+                element.dataset.mode = newMode;
+                updateEquipmentDisplay(element, newMode, data.actual_state);
+            })
+            .catch(error => {
+                console.error('Error changing equipment mode:', error);
+            });
         }
 
-        // Button state management
-        function updateButtonStates() {
-            const startBtn = document.getElementById('start-btn');
-            const holdBtn = document.getElementById('hold-btn');
-            const emergencyBtn = document.querySelector('.emergency-button');
-
-            if (startBtn) startBtn.disabled = cycleState !== 'idle';
-            if (holdBtn) holdBtn.disabled = cycleState === 'idle' || cycleState === 'emergency';
-
-            if (cycleState === 'holding') {
-                holdBtn.classList.add('active');
-            } else {
-                holdBtn.classList.remove('active');
+        function updateEquipmentDisplay(element, mode, actualState) {
+            // Remove all mode classes
+            element.classList.remove('auto', 'manual-on', 'manual-off');
+            
+            // Add mode indicator
+            let modeIndicator = element.querySelector('.equipment-mode');
+            if (!modeIndicator) {
+                modeIndicator = document.createElement('div');
+                modeIndicator.className = 'equipment-mode';
+                element.appendChild(modeIndicator);
             }
-
-            if (cycleState === 'emergency') {
-                // Flash screen red briefly
-                document.body.style.background = '#FF4444';
-                setTimeout(() => { document.body.style.background = 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'; }, 500);
+            
+            // Update based on mode
+            if (mode === 'AUTO') {
+                element.classList.add('auto');
+                modeIndicator.textContent = 'AUTO';
+                
+                // Show actual state in AUTO mode
+                element.classList.remove('on', 'off', 'idle');
+                element.classList.add(actualState.toLowerCase());
+                
+                const statusText = element.querySelector('.equipment-status-text');
+                if (statusText) {
+                    statusText.textContent = actualState;
+                }
+                
+                // Add auto state indicator
+                let autoState = element.querySelector('.equipment-auto-state');
+                if (!autoState) {
+                    autoState = document.createElement('div');
+                    autoState.className = 'equipment-auto-state';
+                    element.appendChild(autoState);
+                }
+                autoState.textContent = `(${actualState})`;
+                
+            } else if (mode === 'ON') {
+                element.classList.add('manual-on', 'on');
+                modeIndicator.textContent = 'MANUAL';
+                
+                const statusText = element.querySelector('.equipment-status-text');
+                if (statusText) {
+                    statusText.textContent = 'ON';
+                }
+                
+                // Remove auto state indicator
+                const autoState = element.querySelector('.equipment-auto-state');
+                if (autoState) autoState.remove();
+                
+            } else if (mode === 'OFF') {
+                element.classList.add('manual-off', 'off');
+                modeIndicator.textContent = 'MANUAL';
+                
+                const statusText = element.querySelector('.equipment-status-text');
+                if (statusText) {
+                    statusText.textContent = 'OFF';
+                }
+                
+                // Remove auto state indicator
+                const autoState = element.querySelector('.equipment-auto-state');
+                if (autoState) autoState.remove();
             }
         }
 

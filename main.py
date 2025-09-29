@@ -11,6 +11,8 @@ import os
 import platform
 from software.control.vpd_controller import PrecisionVPDController, SimulationMode
 from software.control.api_server import app, socketio, init_controller, start_background_tasks
+from software.control.precision_equipment_control import PrecisionEquipmentController
+
 
 # Setup logging FIRST (before any logger calls)
 logging.basicConfig(
@@ -65,6 +67,7 @@ def main():
     # Initialize the VPD controller
     logger.info("Initializing VPD Controller...")
     controller = PrecisionVPDController()
+    equipment_controller = PrecisionEquipmentController(controller)
     
     # Check hardware mode vs simulation
     if controller.hardware_mode and not SIMULATION_MODE:
@@ -87,8 +90,36 @@ def main():
         sim_thread.start()
         logger.info("Simulation thread started")
     
-    # Start control loop in background thread
-    control_thread = threading.Thread(target=controller.run_control_loop, daemon=True)
+    # Enhanced control loop with equipment controller
+    def enhanced_control_loop():
+        while True:
+            try:
+                # Let the VPD controller read sensors and calculate
+                if controller.hardware_mode and controller.sensor_manager:
+                    readings = controller.sensor_manager.read_all_sensors()
+                    for sensor_id, reading in readings.items():
+                        if reading and reading.get('status') == 'ok':
+                            controller.update_sensor_reading(
+                                sensor_id,
+                                reading['temperature'],
+                                reading['humidity']
+                            )
+                
+                # Now update equipment using your precise control logic
+                equipment_controller.update_equipment()
+                
+                # Log status
+                status = controller.get_system_status()
+                logger.info(f"VPD: {status.get('current_vpd', 0):.2f} | "
+                        f"Temp: {status.get('current_temp', 0):.1f}°F | "
+                        f"RH: {status.get('current_humidity', 0):.1f}%")
+                
+                time.sleep(10)
+            except Exception as e:
+                logger.error(f"Control loop error: {e}")
+                time.sleep(5)
+
+    control_thread = threading.Thread(target=enhanced_control_loop, daemon=True)
     control_thread.start()
     logger.info("Control loop thread started")
     
