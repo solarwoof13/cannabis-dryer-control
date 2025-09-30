@@ -173,7 +173,7 @@ def main():
     # Initialize Flask API server with BOTH controllers
     logger.info("Starting Flask API server...")
     from software.control.api_server import init_controller, start_api_server
-    import threading
+
 
     # CRITICAL: Pass BOTH controller AND equipment_controller
     init_controller(controller, equipment_controller)
