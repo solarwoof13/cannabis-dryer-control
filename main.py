@@ -142,6 +142,19 @@ def main():
                 equipment_controller.update_equipment()
                 logger.info(f"Equipment states: {equipment_controller.actual_states}")
                 
+                # Save state for power recovery
+                try:
+                    current_phase = controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase)
+                    state_manager.save_state({
+                        'process_active': getattr(controller, 'process_active', False),
+                        'current_phase': current_phase,
+                        'process_start_time': getattr(controller, 'process_start_time', None),
+                        'phase_start_time': getattr(controller, 'phase_start_time', None),
+                        'equipment_states': equipment_controller.actual_states
+                    })
+                except Exception as e:
+                    logger.error(f"Failed to save state: {e}")
+
                 # Log status
                 status = controller.get_system_status()
                 logger.info(f"VPD: {status.get('current_vpd', 0):.2f} | "

@@ -1049,8 +1049,21 @@
         let processStartTime = null;
 
         function updateButtonStates() {
-            // This function would update start/stop buttons if you had them
-            // For now, just leave it empty to prevent the error
+            const startBtn = document.getElementById('start-btn');
+            const holdBtn = document.getElementById('hold-btn');
+            
+            if (startBtn) {
+                startBtn.disabled = (cycleState === 'running' || cycleState === 'holding');
+            }
+            
+            if (holdBtn) {
+                holdBtn.disabled = (cycleState !== 'running');
+                if (cycleState === 'holding') {
+                    holdBtn.classList.add('active');
+                } else {
+                    holdBtn.classList.remove('active');
+                }
+            }
         }
 
         // Function to get real data from your Python controller
@@ -1169,32 +1182,23 @@
             const modeProgress = document.getElementById('modeProgress');
             
             if (modeText && modeProgress) {
-                switch (currentPhase) {
-                    case 'idle':
-                        modeText.textContent = 'IDLE MODE';
-                        modeProgress.textContent = 'System Ready';
-                        modeText.style.color = '#888';
-                        break;
-                    case 'drying':
-                        modeText.textContent = 'DRYING MODE';
-                        modeProgress.textContent = `Day ${phaseDay} of ${totalPhaseDays}`;
-                        modeText.style.color = '#FFD700';
-                        break;
-                    case 'curing':
-                        modeText.textContent = 'CURING MODE';
-                        modeProgress.textContent = `Day ${phaseDay} of ${totalPhaseDays}`;
-                        modeText.style.color = '#8858ed';
-                        break;
-                    case 'storage':
-                        modeText.textContent = 'STORAGE MODE';
-                        modeProgress.textContent = 'Process Complete';
-                        modeText.style.color = '#00E515';
-                        break;
-                    default:
-                        modeText.textContent = 'UNKNOWN';
-                        modeProgress.textContent = 'Check System';
-                        modeText.style.color = '#FF4444';
-                }
+                // Map backend phase names to display
+                const phaseMap = {
+                    'dry_initial': { text: 'DRYING MODE', subtext: 'Day 1-2', color: '#FFD700' },
+                    'dry_mid': { text: 'DRYING MODE', subtext: 'Day 3-5', color: '#FFD700' },
+                    'dry_final': { text: 'DRYING MODE', subtext: 'Day 6-7', color: '#FFD700' },
+                    'cure': { text: 'CURING MODE', subtext: 'Day 8-10', color: '#8858ed' },
+                    'storage': { text: 'STORAGE MODE', subtext: 'Process Complete', color: '#00E515' },
+                    'idle': { text: 'IDLE MODE', subtext: 'System Ready', color: '#888' },
+                    'complete': { text: 'COMPLETE', subtext: 'Ready for Harvest', color: '#00E515' }
+                };
+                
+                const phase = currentPhase || 'idle';
+                const display = phaseMap[phase] || phaseMap['idle'];
+                
+                modeText.textContent = display.text;
+                modeProgress.textContent = display.subtext;
+                modeText.style.color = display.color;
             }
         }
 
@@ -1568,6 +1572,11 @@
                             progressEl.textContent = `Progress: ${data.progress.toFixed(1)}%`;
                         }
                     }
+
+                    if (data.current_phase) {
+                        currentPhase = data.current_phase;
+                        updateSystemModeDisplay();
+                    }
                     
                     // Update equipment status - THIS IS THE CRITICAL PART FOR RELAY STATUS
                     if (data.equipment) {
@@ -1722,46 +1731,51 @@
             setInterval(updateDashboard, 2000);       // Update sensors every 2 seconds
             setInterval(updateFromController, 2000);  // Update controller every 2 seconds
             
-            // Hook up the start button
+            // Hook up the start button 
             const startBtn = document.getElementById('start-btn');
             if (startBtn) {
                 startBtn.addEventListener('click', () => {
-                    if (cycleState !== 'idle') return;
-                    if (confirm('Start drying/curing cycle?')) {
-                        fetch('/api/start-cycle', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({ mode: 'dry', target_vpd: 1.1, setpoint_aw: 0.62 })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Cycle started:', data);
-                            cycleState = 'running';
-                            updateButtonStates();
-                        })
-                        .catch(err => console.error('Start cycle error:', err));
+                    if (cycleState === 'idle' || cycleState === 'emergency' || !cycleState) {
+                        if (confirm('Start new 10-day drying and curing cycle?')) {
+                            fetch('/api/process/start', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'}
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Process started:', data);
+                                cycleState = 'running';
+                                updateButtonStates();
+                                // Refresh dashboard immediately
+                                updateDashboard();
+                            })
+                            .catch(err => console.error('Start process error:', err));
+                        }
                     }
                 });
             }
-            
+
             // Hook up the hold button  
             const holdBtn = document.getElementById('hold-btn');
             if (holdBtn) {
                 holdBtn.addEventListener('click', () => {
-                    if (cycleState !== 'running') return;
-                    const isHolding = cycleState === 'holding';
-                    fetch('/api/hold-cycle', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ maintain_vpd: currentVPD, resume: isHolding })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Cycle hold toggled:', data);
-                        cycleState = isHolding ? 'running' : 'holding';
-                        updateButtonStates();
-                    })
-                    .catch(err => console.error('Hold cycle error:', err));
+                    if (cycleState === 'running') {
+                        if (confirm('Switch to storage/hold mode?')) {
+                            fetch('/api/process/hold', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'}
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Switched to hold/storage:', data);
+                                cycleState = 'holding';
+                                updateButtonStates();
+                                // Refresh dashboard immediately
+                                updateDashboard();
+                            })
+                            .catch(err => console.error('Hold process error:', err));
+                        }
+                    }
                 });
             }
         });
