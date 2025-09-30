@@ -9,6 +9,7 @@ from flask import Flask, jsonify, request, render_template_string, send_from_dir
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from datetime import datetime
+from software.control.state_manager import StateManager
 import threading
 import time
 import json
@@ -483,6 +484,101 @@ def health_check():
         'timestamp': datetime.now().isoformat(),
         'controller_active': controller is not None
     })
+
+@app.route('/api/process/start', methods=['POST'])
+def start_process():
+    """Start fresh drying process"""
+    if not controller:
+        return jsonify({'error': 'System not initialized'}), 503
+    
+    try:
+        from software.control.vpd_controller import DryingPhase
+        
+        # Start fresh process
+        controller.process_active = True
+        controller.process_start_time = datetime.now()
+        controller.phase_start_time = datetime.now()
+        controller.current_phase = DryingPhase.DRY_INITIAL
+        
+        # Save state
+        state_manager = StateManager()
+        state_manager.save_state({
+            'process_active': True,
+            'current_phase': 'dry_initial',
+            'process_start_time': controller.process_start_time,
+            'phase_start_time': controller.phase_start_time,
+            'equipment_states': {}  # Will be updated by control loop
+        })
+        
+        logger.info("Drying process STARTED - Phase: DRY_INITIAL")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Drying process started',
+            'phase': 'DRY_INITIAL'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/process/hold', methods=['POST'])
+def hold_process():
+    """Jump to storage/hold mode"""
+    if not controller:
+        return jsonify({'error': 'System not initialized'}), 503
+    
+    try:
+        from software.control.vpd_controller import DryingPhase
+        
+        controller.current_phase = DryingPhase.STORAGE
+        controller.phase_start_time = datetime.now()
+        
+        # Save state
+        state_manager = StateManager()
+        state_manager.save_state({
+            'process_active': True,
+            'current_phase': 'storage',
+            'process_start_time': controller.process_start_time,
+            'phase_start_time': controller.phase_start_time,
+            'equipment_states': {}
+        })
+        
+        logger.info("Process put on HOLD - entering STORAGE mode")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Process on hold - storage mode active'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/process/stop', methods=['POST'])  
+def stop_process():
+    """Stop process completely"""
+    if not controller:
+        return jsonify({'error': 'System not initialized'}), 503
+    
+    try:
+        controller.process_active = False
+        controller.current_phase = DryingPhase.IDLE if hasattr(DryingPhase, 'IDLE') else DryingPhase.STORAGE
+        
+        # Clear saved state
+        state_manager = StateManager()
+        state_manager.save_state({
+            'process_active': False,
+            'current_phase': 'idle',
+            'process_start_time': None,
+            'phase_start_time': None,
+            'equipment_states': {}
+        })
+        
+        logger.info("Process STOPPED - system idle")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Process stopped'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Simple web dashboard (for testing without the touchscreen GUI)
 def dashboard():

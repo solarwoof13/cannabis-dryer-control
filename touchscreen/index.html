@@ -1048,6 +1048,11 @@
         let totalPhaseDays = 0;
         let processStartTime = null;
 
+        function updateButtonStates() {
+            // This function would update start/stop buttons if you had them
+            // For now, just leave it empty to prevent the error
+        }
+
         // Function to get real data from your Python controller
         function updateFromController() {
             fetch('/api/status')

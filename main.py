@@ -69,6 +69,37 @@ def main():
     controller = PrecisionVPDController()
     equipment_controller = PrecisionEquipmentController(controller)
     logger.info(f"Equipment controller created: {equipment_controller}")
+
+    # STATE RECOVERY CODE GOES HERE (Step 2)
+    from software.control.state_manager import StateManager
+    from software.control.vpd_controller import DryingPhase
+    from datetime import datetime
+    
+    state_manager = StateManager()
+    saved_state = state_manager.load_state()
+    
+    if saved_state['process_active']:
+        # We were in the middle of a process
+        logger.warning("RECOVERING FROM POWER LOSS/RESTART")
+        logger.info(f"Previous state: Phase={saved_state['current_phase']}")
+        
+        # Restore the process state
+        controller.process_active = True
+        controller.current_phase = DryingPhase(saved_state['current_phase'])
+        controller.process_start_time = saved_state['process_start_time']
+        controller.phase_start_time = saved_state['phase_start_time']
+        
+        # Calculate where we are in the process
+        if controller.process_start_time:
+            elapsed = datetime.now() - controller.process_start_time
+            total_hours = elapsed.total_seconds() / 3600
+            logger.info(f"Process has been running for {total_hours:.1f} hours")
+        
+        # Resume equipment states
+        for equipment, state in saved_state['equipment_states'].items():
+            equipment_controller.actual_states[equipment] = state
+    else:
+        logger.info("Starting fresh - no previous process running")
     
     # Check hardware mode vs simulation
     if controller.hardware_mode and not SIMULATION_MODE:
