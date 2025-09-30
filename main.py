@@ -169,6 +169,23 @@ def main():
     control_thread = threading.Thread(target=enhanced_control_loop, daemon=True)
     control_thread.start()
     logger.info("Control loop thread started")
+
+    # Initialize Flask API server with BOTH controllers
+    logger.info("Starting Flask API server...")
+    from software.control.api_server import init_controller, start_api_server
+    import threading
+
+    # CRITICAL: Pass BOTH controller AND equipment_controller
+    init_controller(controller, equipment_controller)
+
+    # Start API server in background thread
+    api_thread = threading.Thread(
+        target=start_api_server,
+        args=('0.0.0.0', 5000),
+        daemon=True
+    )
+    api_thread.start()
+    logger.info("API server started on port 5000")
     
     # Initialize Flask with the controller
     init_controller(controller)
