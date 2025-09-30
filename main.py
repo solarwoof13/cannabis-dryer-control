@@ -4,7 +4,6 @@ Main entry point for Cannabis Dryer Control System
 """
 
 import sys
-import threading
 import logging
 import time
 import os
@@ -177,15 +176,6 @@ def main():
 
     # CRITICAL: Pass BOTH controller AND equipment_controller
     init_controller(controller, equipment_controller)
-
-    # Start API server in background thread
-    api_thread = threading.Thread(
-        target=start_api_server,
-        args=('0.0.0.0', 5000),
-        daemon=True
-    )
-    api_thread.start()
-    logger.info("API server started on port 5000")
     
     # Initialize Flask with the controller
     init_controller(controller)
