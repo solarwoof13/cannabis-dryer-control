@@ -4,6 +4,7 @@ Main entry point for Cannabis Dryer Control System
 """
 
 import sys
+import threading
 import logging
 import time
 import os
