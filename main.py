@@ -168,17 +168,9 @@ def main():
     control_thread = threading.Thread(target=enhanced_control_loop, daemon=True)
     control_thread.start()
     logger.info("Control loop thread started")
-
-    # Initialize Flask API server with BOTH controllers
-    logger.info("Starting Flask API server...")
-    from software.control.api_server import init_controller, start_api_server
-
-
-    # CRITICAL: Pass BOTH controller AND equipment_controller
-    init_controller(controller, equipment_controller)
     
-    # Initialize Flask with the controller
-    init_controller(controller)
+    # Initialize Flask with BOTH controllers
+    init_controller(controller, equipment_controller)
     
     # Start background tasks for web interface
     start_background_tasks()
