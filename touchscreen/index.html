@@ -1073,7 +1073,7 @@
             if (stopBtn) stopBtn.classList.remove('active');
             
             // Set button enabled/disabled and highlight based on current state
-            if (cycleState === 'running' || cycleState === 'emergency') {
+            if (cycleState === 'running') {
                 // START is active and highlighted
                 if (startBtn) {
                     startBtn.classList.add('active');
@@ -1223,6 +1223,14 @@
             const modeProgress = document.getElementById('modeProgress');
             
             if (modeText && modeProgress) {
+                // Check for emergency state first
+                if (cycleState === 'emergency') {
+                    modeText.textContent = 'EMERGENCY STOP';
+                    modeProgress.textContent = 'System Stopped';
+                    modeText.style.color = '#FF4444';
+                    return;
+                }
+                
                 // Map backend phase names to display
                 const phaseMap = {
                     'dry_initial': { text: 'DRYING MODE', subtext: 'Day 1-2', color: '#FFD700' },
@@ -1868,8 +1876,6 @@
                     // Allow Hold from running OR emergency state
                     if (cycleState === 'running' || cycleState === 'emergency') {
                         const confirmMsg = cycleState === 'emergency' 
-                            
-                            
                             ? 'Recover from emergency stop into storage/hold mode?' 
                             : 'Switch to storage/hold mode?';
                         
