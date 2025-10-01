@@ -1640,13 +1640,13 @@
                         console.log('Equipment status:', data.equipment);
                         
                         const equipMap = {
-                            'dehum': 'dehumidifier',
-                            'hum_solenoid': 'humidifier',
-                            'hum_fan': 'humidifier',
+                            'dehum': 'dehum',
+                            'hum_solenoid': 'hum_solenoid',
+                            'hum_fan': 'hum_fan',
                             'erv': 'erv',
                             'mini_split': 'mini_split',
                             'supply_fan': 'supply_fan',
-                            'return_fan': 'exhaust_fan'
+                            'return_fan': 'return_fan'
                         };
                         
                         Object.entries(data.equipment).forEach(([backendName, state]) => {
