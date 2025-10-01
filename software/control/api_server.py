@@ -185,16 +185,32 @@ def get_status():
             elapsed = datetime.now() - controller.process_start_time
             hours_elapsed = elapsed.total_seconds() / 3600
             
+            # Get actual phase durations from controller
+            total_drying_hours = 0
+            total_curing_hours = 0
+            if hasattr(controller, 'phase_setpoints'):
+                # Sum up all drying phase durations
+                drying_phases = ['dry_initial', 'dry_mid', 'dry_final']
+                for phase_name in drying_phases:
+                    if phase_name in controller.phase_setpoints:
+                        total_drying_hours += controller.phase_setpoints[phase_name].duration_hours
+                
+                # Get curing phase duration
+                if 'cure' in controller.phase_setpoints:
+                    total_curing_hours = controller.phase_setpoints['cure'].duration_hours
+            
             if phase_value in ['dry_initial', 'dry_mid', 'dry_final']:
-                drying_progress = min(100, int((hours_elapsed / (4 * 24)) * 100))
+                if total_drying_hours > 0:
+                    drying_progress = min(100, int((hours_elapsed / total_drying_hours) * 100))
                 phase_day = current_day
-                phase_total_days = 4
+                phase_total_days = max(1, int(total_drying_hours / 24))  # Convert to days
             elif phase_value == 'cure':
                 drying_progress = 100
-                cure_hours = hours_elapsed - (4 * 24)
-                curing_progress = min(100, int((cure_hours / (4 * 24)) * 100))
-                phase_day = current_day - 4
-                phase_total_days = 4
+                cure_hours = hours_elapsed - total_drying_hours
+                if total_curing_hours > 0:
+                    curing_progress = min(100, int((cure_hours / total_curing_hours) * 100))
+                phase_day = current_day - max(1, int(total_drying_hours / 24))
+                phase_total_days = max(1, int(total_curing_hours / 24))  # Convert to days
             elif phase_value == 'storage':
                 drying_progress = 100
                 curing_progress = 100

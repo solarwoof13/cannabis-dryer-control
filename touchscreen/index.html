@@ -1259,7 +1259,16 @@
             
             if (dryingBar && dryingText) {
                 dryingBar.style.width = `${dryingProgress}%`;
-                dryingText.textContent = dryingProgress >= 100 ? '100% COMPLETE' : `${dryingProgress}%`;
+                
+                if (dryingProgress >= 100) {
+                    dryingText.textContent = 'COMPLETE';
+                } else if (currentPhase && currentPhase.startsWith('dry_')) {
+                    dryingText.textContent = `${dryingProgress}% - ACTIVE`;
+                } else if (dryingProgress > 0) {
+                    dryingText.textContent = `${dryingProgress}% - PENDING`;
+                } else {
+                    dryingText.textContent = '0% - NOT STARTED';
+                }
                 
                 if (dryingProgress >= 100) {
                     dryingBar.classList.add('complete');
@@ -1278,10 +1287,12 @@
                     if (dryingProgress >= 100) {
                         timeDiv.textContent = 'Complete';
                         timeDiv.style.color = '#00E515';
-                    } else if (currentPhase === 'drying') {
-                        const remainingDays = totalPhaseDays - phaseDay;
-                        timeDiv.textContent = `${remainingDays}d remaining`;
+                    } else if (currentPhase && currentPhase.startsWith('dry_')) {
+                        timeDiv.textContent = 'In Progress';
                         timeDiv.style.color = '#FFD700';
+                    } else if (dryingProgress > 0) {
+                        timeDiv.textContent = 'Pending';
+                        timeDiv.style.color = '#FFA500';
                     } else {
                         timeDiv.textContent = 'Not Started';
                         timeDiv.style.color = '#888';
@@ -1296,7 +1307,16 @@
             
             if (curingBar && curingText) {
                 curingBar.style.width = `${curingProgress}%`;
-                curingText.textContent = curingProgress >= 100 ? '100% COMPLETE' : `${curingProgress}%`;
+                
+                if (curingProgress >= 100) {
+                    curingText.textContent = 'COMPLETE';
+                } else if (currentPhase === 'cure') {
+                    curingText.textContent = `${curingProgress}% - ACTIVE`;
+                } else if (curingProgress > 0) {
+                    curingText.textContent = `${curingProgress}% - PENDING`;
+                } else {
+                    curingText.textContent = '0% - NOT STARTED';
+                }
                 
                 if (curingProgress >= 100) {
                     curingBar.classList.add('complete');
@@ -1315,10 +1335,8 @@
                     if (curingProgress >= 100) {
                         timeDiv.textContent = 'Complete';
                         timeDiv.style.color = '#00E515';
-                    } else if (currentPhase === 'curing') {
-                        const remainingDays = totalPhaseDays - phaseDay;
-                        const remainingHours = Math.floor((remainingDays % 1) * 24);
-                        timeDiv.textContent = `${Math.floor(remainingDays)}d ${remainingHours}h remaining`;
+                    } else if (currentPhase === 'cure') {
+                        timeDiv.textContent = 'In Progress';
                         timeDiv.style.color = '#8858ed';
                     } else if (dryingProgress >= 100) {
                         timeDiv.textContent = 'Ready to Start';
@@ -1852,22 +1870,15 @@
             const startBtn = document.getElementById('start-btn');
             if (startBtn) {
                 startBtn.addEventListener('click', () => {
-                    if (confirm('Start new drying and curing cycle?')) {
-                        fetch('/api/process/start', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'}
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Process started:', data);
-                            cycleState = 'running';
-                            updateButtonStates();
-                            updateDashboard();
-                        })
-                        .catch(err => console.error('Start process error:', err));
+                    if (systemState === 'idle' || systemState === 'complete') {
+                        startProcess();
+                    } else {
+                        alert('Process is already running or in emergency state!');
                     }
                 });
             }
+
+           
 
             // Hook up the hold button  
             const holdBtn = document.getElementById('hold-btn');
