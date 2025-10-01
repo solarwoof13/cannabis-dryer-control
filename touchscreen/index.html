@@ -1625,15 +1625,17 @@
                     console.log('System status:', data);
                     
                     // Update VPD - USE SUPPLY AIR VPD FOR DISPLAY
-                    if (data.supply_vpd !== undefined && data.supply_vpd !== null) {
+                    if (data.supply_vpd !== undefined && data.supply_vpd !== null && 
+                        data.supply_vpd >= 0.1 && data.supply_vpd <= 5.0) {
                         currentVPD = data.supply_vpd;
                         updateVPDDisplay();
                         
                         const vpdEl = document.getElementById('vpd-current');
                         if (vpdEl) vpdEl.textContent = currentVPD.toFixed(2) + ' kPa';
-                    } else if (data.vpd_current !== undefined) {
+                    } else if (data.current_vpd !== undefined && 
+                        data.current_vpd >= 0.1 && data.current_vpd <= 5.0) {
                         // Fallback to dry room VPD if supply air not available
-                        currentVPD = data.vpd_current;
+                        currentVPD = data.current_vpd;
                         updateVPDDisplay();
                         
                         const vpdEl = document.getElementById('vpd-current');

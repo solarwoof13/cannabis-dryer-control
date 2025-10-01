@@ -69,13 +69,28 @@ class SensorReading:
     @property
     def vpd_kpa(self) -> float:
         """Calculate VPD in kPa using leaf temperature = air temperature"""
-        t_leaf = self.temperature_c
-        # Saturation vapor pressure at leaf temperature
-        svp_leaf = 0.6108 * np.exp((17.27 * t_leaf) / (t_leaf + 237.3))
-        # Actual vapor pressure
-        avp = svp_leaf * (self.humidity / 100)
-        # VPD in kPa
-        return svp_leaf - avp
+        try:
+            if not (0 <= self.humidity <= 100) or not (-50 <= self.temperature <= 150):
+                logger.warning(f"Invalid sensor data for VPD calculation: T={self.temperature}°F, RH={self.humidity}%")
+                return 0.75  # Return reasonable default
+            
+            t_leaf = self.temperature_c
+            # Saturation vapor pressure at leaf temperature
+            svp_leaf = 0.6108 * np.exp((17.27 * t_leaf) / (t_leaf + 237.3))
+            # Actual vapor pressure
+            avp = svp_leaf * (self.humidity / 100)
+            # VPD in kPa
+            vpd = svp_leaf - avp
+            
+            # Validate result
+            if not (0 <= vpd <= 5.0):
+                logger.warning(f"Invalid VPD calculated: {vpd:.3f} kPa (T={self.temperature}°F, RH={self.humidity}%)")
+                return 0.75  # Return reasonable default
+            
+            return vpd
+        except Exception as e:
+            logger.error(f"Error calculating VPD: {e}")
+            return 0.75  # Return reasonable default
     
     @property
     def dew_point(self) -> float:
@@ -287,6 +302,11 @@ class PrecisionVPDController:
         humidity = supply_reading.humidity
         dew_point = supply_reading.dew_point if hasattr(supply_reading, 'dew_point') else 0
         vpd = supply_reading.vpd_kpa if hasattr(supply_reading, 'vpd_kpa') else 0
+        
+        # Validate VPD value
+        if not (0.1 <= vpd <= 5.0):
+            logger.warning(f"Invalid supply air VPD: {vpd:.3f} kPa, using fallback")
+            vpd = 0.75  # Reasonable default
         
         logger.debug(f"Supply air conditions: T={temp:.1f}°F, RH={humidity:.1f}%, DP={dew_point:.1f}°F, VPD={vpd:.2f} kPa")
         

@@ -249,8 +249,16 @@ def get_status():
         try:
             if hasattr(controller, 'get_supply_air_conditions'):
                 supply_temp, supply_humidity, supply_dew_point, supply_vpd = controller.get_supply_air_conditions()
+                # Validate supply VPD
+                if supply_vpd is not None and not (0.1 <= supply_vpd <= 5.0):
+                    logger.warning(f"Invalid supply VPD from sensor: {supply_vpd:.3f}, setting to None")
+                    supply_vpd = None
         except Exception as e:
             logger.debug(f"Supply air data not available: {e}")
+            supply_temp = None
+            supply_humidity = None
+            supply_vpd = None
+            supply_dew_point = None
         
         status.update({
             'phase': phase_value,  # ADDED for frontend
