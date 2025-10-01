@@ -234,15 +234,11 @@ class PrecisionEquipmentController:
     
     def _apply_state(self, equipment, state):
         """Apply the desired state to the equipment (ON/OFF)"""
-        logger.info(f"Setting {equipment} to {state} (Control Mode: {self.control_modes[equipment]})")
+        logger.info(f"Setting {equipment} to {state}")
         
         if equipment not in self.gpio_pins:
-            logger.error(f"Invalid equipment: {equipment}")
-            return False
-        
-        if self.control_modes[equipment] == ControlMode.AUTO:
-            logger.info(f"  ➡️  {equipment} is in AUTO mode - ignoring manual state set")
-            return True  # In AUTO mode, we don't manually control the state
+            logger.debug(f"No GPIO pin for {equipment} (OK for mini_split)")
+            return True  # Not an error for equipment without GPIO pins
         
         try:
             import RPi.GPIO as GPIO
@@ -252,7 +248,6 @@ class PrecisionEquipmentController:
             
             # Set the GPIO pin to the desired state
             GPIO.output(pin, gpio_state)
-            self.actual_states[equipment] = state  # Update the actual state
             logger.info(f"  ➡️  {equipment} set to {state} (GPIO {pin} = {'LOW' if state == 'ON' else 'HIGH'})")
             return True
             
@@ -341,8 +336,11 @@ class PrecisionEquipmentController:
     
     def update_equipment(self):
         """Main equipment control update - call this repeatedly"""
+        logger.info("🔄 update_equipment() called")
+        
         # Track if process just became active (recovering from emergency stop)
         current_process_active = self.vpd_controller.process_active
+        logger.info(f"Process active: {current_process_active}, Phase: {self.vpd_controller.current_phase}")
         
         if not current_process_active:
             logger.debug("Process NOT active - skipping equipment control")
@@ -356,7 +354,7 @@ class PrecisionEquipmentController:
             logger.critical("🔄 PROCESS REACTIVATED - Recovering from emergency stop")
             self._process_was_inactive = False
         
-        logger.info(f"Process ACTIVE (phase: {self.vpd_controller.current_phase.value}) - Running equipment control")
+        logger.info(f"Process ACTIVE - Running equipment control")
         
         # Get current conditions from VPD controller - USE SUPPLY AIR FOR CONTROL
         try:
@@ -390,6 +388,7 @@ class PrecisionEquipmentController:
         )
         
         logger.info(f"Calculated auto states: {auto_states}")
+        logger.info(f"Current actual states: {self.actual_states}")
         
         # CRITICAL FIX: Force apply ALL states on first cycle after process restart
         if self._first_active_cycle:
@@ -489,6 +488,7 @@ class PrecisionEquipmentController:
         # Handle different phases
         if phase == 'storage':
             # STORAGE MODE: Monitor humidity, cycle equipment
+            logger.info(f"STORAGE MODE: Checking humidity {current_humidity:.1f}%")
             if current_humidity > 65:  # Too humid
                 new_states['dehum'] = 'ON'
                 new_states['hum_solenoid'] = 'OFF'
@@ -503,7 +503,7 @@ class PrecisionEquipmentController:
                 new_states['dehum'] = 'OFF'
                 new_states['hum_solenoid'] = 'OFF'
                 new_states['hum_fan'] = 'OFF'
-                logger.info(f"STORAGE: Humidity OK (RH {current_humidity:.1f}% in 55-65%)")
+                logger.info(f"STORAGE: Humidity OK (RH {current_humidity:.1f}% in 55-65%) - setting hum_fan OFF")
             
             # Mini-split stays on for temperature, fans stay on for circulation
             return new_states

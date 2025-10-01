@@ -242,6 +242,16 @@ def get_status():
                         for k, v in controller.equipment_states.items()}
             logger.info(f"DEBUG: Using controller.equipment_states = {equipment}")
         
+        # Add debug info
+        debug_info = {}
+        if equipment_controller:
+            debug_info = {
+                'gpio_initialized': getattr(equipment_controller, 'gpio_initialized', False),
+                'process_active': getattr(equipment_controller.vpd_controller, 'process_active', False) if hasattr(equipment_controller, 'vpd_controller') else False,
+                'current_phase': getattr(equipment_controller.vpd_controller, 'current_phase', None).value if hasattr(equipment_controller, 'vpd_controller') and hasattr(equipment_controller.vpd_controller, 'current_phase') and equipment_controller.vpd_controller.current_phase else None,
+                'control_modes': getattr(equipment_controller, 'control_modes', {}),
+            }
+        
         # Try to get supply air conditions for monitoring
         supply_temp = None
         supply_humidity = None
@@ -286,7 +296,8 @@ def get_status():
             'supply_humidity': float(supply_humidity) if supply_humidity is not None else None,
             'supply_vpd': float(supply_vpd) if supply_vpd is not None else None,
             'supply_dew_point': float(supply_dew_point) if supply_dew_point is not None else None,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'debug': debug_info
         })
         
         return jsonify(status)
@@ -1349,6 +1360,44 @@ def debug_equipment():
                             for k, v in equipment_controller.control_modes.items()},
             'process_active': equipment_controller.vpd_controller.process_active if hasattr(equipment_controller, 'vpd_controller') else None
         })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/debug/gpio', methods=['GET'])
+def debug_gpio():
+    """Debug endpoint to check GPIO status"""
+    if not equipment_controller:
+        return jsonify({'error': 'Equipment controller not initialized'}), 503
+    
+    try:
+        gpio_info = {
+            'gpio_available': equipment_controller.gpio_initialized,
+            'pins': {}
+        }
+        
+        if equipment_controller.gpio_initialized:
+            try:
+                import RPi.GPIO as GPIO
+                for equipment, pin in equipment_controller.gpio_pins.items():
+                    try:
+                        current_state = GPIO.input(pin)
+                        gpio_info['pins'][equipment] = {
+                            'pin': pin,
+                            'current_state': current_state,
+                            'expected_for_on': 'LOW (0)',
+                            'expected_for_off': 'HIGH (1)'
+                        }
+                    except Exception as e:
+                        gpio_info['pins'][equipment] = {
+                            'pin': pin,
+                            'error': str(e)
+                        }
+            except ImportError:
+                gpio_info['gpio_available'] = False
+                gpio_info['error'] = 'RPi.GPIO not available'
+        
+        return jsonify(gpio_info)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
