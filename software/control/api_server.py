@@ -200,14 +200,17 @@ def get_status():
                 curing_progress = 100
         
         # Get equipment states from equipment controller (actual GPIO states)
+        logger.info(f"DEBUG: equipment_controller = {equipment_controller}, has actual_states = {hasattr(equipment_controller, 'actual_states') if equipment_controller else False}")
         equipment = {}
         if equipment_controller and hasattr(equipment_controller, 'actual_states'):
             # Use the actual GPIO states from equipment controller
             equipment = equipment_controller.actual_states.copy()
+            logger.info(f"DEBUG: Using equipment_controller.actual_states = {equipment}")
         elif hasattr(controller, 'equipment_states'):
             # Fallback to VPD controller states
             equipment = {k: v.value if hasattr(v, 'value') else str(v) 
                         for k, v in controller.equipment_states.items()}
+            logger.info(f"DEBUG: Using controller.equipment_states = {equipment}")
         
         status.update({
             'phase': phase_value,  # ADDED for frontend

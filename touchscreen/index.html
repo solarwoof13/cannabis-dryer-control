@@ -1073,7 +1073,7 @@
             if (stopBtn) stopBtn.classList.remove('active');
             
             // Set button enabled/disabled and highlight based on current state
-            if (cycleState === 'running') {
+            if (cycleState === 'running' || cycleState === 'emergency') {
                 // START is active and highlighted
                 if (startBtn) {
                     startBtn.classList.add('active');
