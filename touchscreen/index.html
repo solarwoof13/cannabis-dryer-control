@@ -1665,12 +1665,6 @@
                             }
                         });
                     }
-                    
-                    // Sync cycle state from backend
-                    if (data.cycle_state) {
-                        cycleState = data.cycle_state;
-                        updateButtonStates();
-                    }
                 })
                 .catch(error => console.error('Error fetching status:', error));
         }
