@@ -5,7 +5,7 @@ Provides REST API for GUI interaction and remote monitoring
 """
 
 from software.control.vpd_controller import DryingPhase
-from flask import Flask, jsonify, request, render_template_string, send_from_directory
+from flask import Flask, jsonify, request, render_template_string, send_from_directory, make_response
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from datetime import datetime
@@ -772,6 +772,196 @@ def emergency_stop():
         
     except Exception as e:
         logger.error(f"Error during emergency stop: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/session/start', methods=['POST'])
+def start_session():
+    """Start a new drying session"""
+    if not controller:
+        return jsonify({'error': 'System not initialized'}), 503
+    
+    try:
+        data = request.json or {}
+        
+        # Set default values if not provided
+        drying_days = data.get('drying_days', 4)
+        curing_days = data.get('curing_days', 4)
+        target_water_activity = data.get('target_water_activity', 0.62)
+        
+        # Initialize session
+        controller.process_start_time = datetime.now()
+        controller.process_active = True
+        controller.current_phase = DryingPhase.DRY_INITIAL
+        controller.phase_start_time = datetime.now()
+        controller.estimated_water_activity = 0.85  # Starting point
+        controller.target_water_activity = target_water_activity
+        
+        # Save state
+        state_manager = StateManager()
+        state_manager.save_state({
+            'process_active': True,
+            'current_phase': 'dry_initial',
+            'process_start_time': controller.process_start_time,
+            'phase_start_time': controller.phase_start_time,
+            'equipment_states': {}
+        })
+        
+        logger.info(f"Session started: {drying_days}d drying, {curing_days}d curing, target aW={target_water_activity}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Session started with {drying_days}d drying, {curing_days}d curing',
+            'session_id': f"session_{int(datetime.now().timestamp())}"
+        })
+    except Exception as e:
+        logger.error(f"Start session error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/session/pause', methods=['POST'])
+def pause_session():
+    """Pause the current session"""
+    if not controller:
+        return jsonify({'error': 'System not initialized'}), 503
+    
+    try:
+        controller.process_active = False
+        
+        # Save state
+        state_manager = StateManager()
+        state_manager.save_state({
+            'process_active': False,
+            'current_phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase),
+            'process_start_time': controller.process_start_time,
+            'phase_start_time': controller.phase_start_time,
+            'equipment_states': {}
+        })
+        
+        logger.info("Session paused")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Session paused'
+        })
+    except Exception as e:
+        logger.error(f"Pause session error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/session/stop', methods=['POST'])
+def stop_session():
+    """Stop the current session"""
+    if not controller:
+        return jsonify({'error': 'System not initialized'}), 503
+    
+    try:
+        controller.process_active = False
+        controller.current_phase = DryingPhase.COMPLETE
+        
+        # Save state
+        state_manager = StateManager()
+        state_manager.save_state({
+            'process_active': False,
+            'current_phase': 'complete',
+            'process_start_time': controller.process_start_time,
+            'phase_start_time': controller.phase_start_time,
+            'equipment_states': {}
+        })
+        
+        logger.info("Session stopped")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Session stopped'
+        })
+    except Exception as e:
+        logger.error(f"Stop session error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings', methods=['GET', 'POST'])
+def manage_settings():
+    """Get or update system settings"""
+    if not controller:
+        return jsonify({'error': 'System not initialized'}), 503
+    
+    try:
+        if request.method == 'GET':
+            # Return current settings
+            settings = {
+                'process': {
+                    'drying_time_days': 4,
+                    'curing_time_days': 4,
+                    'target_water_activity': controller.target_water_activity if hasattr(controller, 'target_water_activity') else 0.62,
+                    'linear_adjustment': True
+                },
+                'vpd_control': {
+                    'control_mode': 'vpd',
+                    'vpd_setpoint': 0.75,
+                    'vpd_tolerance': 0.1,
+                    'vpd_alert_threshold': 0.2,
+                    'temperature_setpoint': controller.mini_split_setpoint if hasattr(controller, 'mini_split_setpoint') else 68,
+                    'humidity_setpoint': 62.5
+                },
+                'equipment': {
+                    'fan_speed_percent': 60,
+                    'erv_exchange_rate': 4,
+                    'mini_split_mode': 'auto',
+                    'manual_override': False,
+                    'safety_temp_min': controller.emergency_temp_min if hasattr(controller, 'emergency_temp_min') else 60,
+                    'safety_temp_max': controller.emergency_temp_max if hasattr(controller, 'emergency_temp_max') else 75
+                },
+                'data_visualization': {
+                    'chart_time_range': 'hourly'
+                }
+            }
+            
+            return jsonify({'success': True, 'settings': settings})
+        
+        else:  # POST
+            data = request.json
+            logger.info(f"Settings update requested: {data}")
+            
+            # Apply settings to controller
+            if 'process' in data:
+                if hasattr(controller, 'target_water_activity'):
+                    controller.target_water_activity = data['process'].get('target_water_activity', 0.62)
+            
+            if 'vpd_control' in data:
+                if hasattr(controller, 'mini_split_setpoint'):
+                    controller.mini_split_setpoint = data['vpd_control'].get('temperature_setpoint', 68)
+            
+            if 'equipment' in data:
+                if hasattr(controller, 'emergency_temp_min'):
+                    controller.emergency_temp_min = data['equipment'].get('safety_temp_min', 60)
+                if hasattr(controller, 'emergency_temp_max'):
+                    controller.emergency_temp_max = data['equipment'].get('safety_temp_max', 75)
+            
+            # Save settings (in production, this would save to persistent storage)
+            logger.info("Settings updated successfully")
+            
+            return jsonify({'success': True, 'message': 'Settings updated'})
+            
+    except Exception as e:
+        logger.error(f"Settings error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/export/csv', methods=['GET'])
+def export_csv():
+    """Export session data as CSV"""
+    try:
+        # In production, this would generate actual CSV from database
+        # For now, return a simple CSV response
+        
+        csv_data = "timestamp,vpd,temperature,humidity,dew_point,phase\n"
+        csv_data += "2024-01-01 10:00:00,0.75,68.5,62.3,55.2,dry_initial\n"
+        csv_data += "2024-01-01 11:00:00,0.78,69.1,61.8,55.8,dry_initial\n"
+        
+        response = make_response(csv_data)
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=cannabis-dryer-data-{datetime.now().strftime("%Y%m%d")}.csv'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Export CSV error: {e}")
         return jsonify({'error': str(e)}), 500
 
 # Simple web dashboard (for testing without the touchscreen GUI)

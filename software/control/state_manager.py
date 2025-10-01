@@ -6,8 +6,9 @@ from pathlib import Path
 class StateManager:
     """Manages persistent state for power loss recovery"""
     
-    def __init__(self, state_file='/home/mikejames/cannabis-dryer/system_state.json'):
-        self.state_file = Path(state_file)
+    def __init__(self, state_file='data/system_state.json'):
+        self.state_file = Path(__file__).parent.parent.parent / state_file
+        self.state_file.parent.mkdir(parents=True, exist_ok=True)
         self.state = self.load_state()
     
     def load_state(self):

@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta charset="utf-8" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -567,12 +568,16 @@
                         <div class="legend-label">VPD</div>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-dot" style="background: #00C310;"></div>
+                        <div class="legend-dot" style="background: #FF6B6B;"></div>
                         <div class="legend-label">Temperature</div>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-dot" style="background: #FFA500;"></div>
+                        <div class="legend-dot" style="background: #4ECDC4;"></div>
                         <div class="legend-label">Humidity</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #45B7D1;"></div>
+                        <div class="legend-label">Dew Point</div>
                     </div>
                 </div>
             </div>
@@ -795,80 +800,356 @@
         function loadSession() {
             const sessionId = document.getElementById('sessionSelect').value;
             console.log('Loading session:', sessionId);
-            // Load session data and update displays
-        }
-
-        // Update chart based on time range
-        function updateChart(range) {
-            // This would connect to your backend to get chart data
-            console.log('Updating chart for range:', range);
             
-            // Show placeholder for now
-            document.querySelector('.chart-placeholder').textContent = `Loading ${range} data...`;
-            
-            // Simulate loading
-            setTimeout(() => {
-                document.querySelector('.chart-placeholder').textContent = 'Chart will render here';
-            }, 1000);
-        }
-
-        // Update statistics
-        function updateStats(range) {
-            // This would fetch real data from backend
-            console.log('Updating stats for range:', range);
-            
-            // Simulate real-time updates for live mode
-            if (range === 'live') {
-                setInterval(updateLiveData, 2000);
+            if (sessionId === 'current') {
+                // Load current session data
+                updateChart('live');
+                updateStats('live');
+            } else {
+                // For historical sessions, we'd load from database
+                // For now, just show a message
+                console.log('Historical session loading not implemented yet');
+                const placeholder = document.querySelector('.chart-placeholder');
+                placeholder.textContent = `Session data for ${sessionId} not available`;
+                placeholder.style.display = 'block';
+                document.getElementById('mainChart').style.display = 'none';
             }
         }
 
-        // Simulate live data updates
-        function updateLiveData() {
-            // Update VPD
-            const vpdElement = document.querySelector('.stat-value');
-            const currentVPD = parseFloat(vpdElement.textContent);
-            const newVPD = (currentVPD + (Math.random() - 0.5) * 0.02).toFixed(2);
-            vpdElement.innerHTML = newVPD + '<span class="stat-unit">kPa</span>';
+        // Global chart variable
+        let mainChart = null;
+
+        // Update chart based on time range
+        async function updateChart(range) {
+            const canvas = document.getElementById('mainChart');
+            const placeholder = document.querySelector('.chart-placeholder');
             
-            // Update mini chart heights randomly
-            document.querySelectorAll('.mini-chart-fill').forEach(fill => {
-                const currentHeight = parseInt(fill.style.height);
-                const newHeight = Math.max(20, Math.min(80, currentHeight + (Math.random() - 0.5) * 10));
-                fill.style.height = newHeight + '%';
-            });
+            // Show loading
+            canvas.style.display = 'none';
+            placeholder.style.display = 'block';
+            placeholder.textContent = `Loading ${range} data...`;
+            
+            try {
+                let data;
+                
+                if (range === 'live') {
+                    // For live data, get current status
+                    const response = await fetch('/api/status');
+                    const status = await response.json();
+                    
+                    // Create live data point
+                    const now = new Date();
+                    data = [{
+                        timestamp: now.getTime() / 1000,
+                        vpd: status.current_vpd || 0.75,
+                        temperature: status.current_temp || 68,
+                        humidity: status.current_humidity || 60,
+                        dew_point: status.dew_point || 55
+                    }];
+                } else {
+                    // Map frontend ranges to API ranges
+                    const apiRangeMap = {
+                        'hourly': '1h',
+                        'daily': '24h', 
+                        'weekly': '7d',
+                        'session': '7d'  // Use 7d for session data
+                    };
+                    
+                    const apiRange = apiRangeMap[range] || '24h';
+                    const response = await fetch(`/api/history/${apiRange}`);
+                    data = await response.json();
+                }
+                
+                // Process data for chart
+                const labels = data.map(point => {
+                    const date = new Date(point.timestamp * 1000);
+                    if (range === 'live') {
+                        return date.toLocaleTimeString();
+                    } else if (range === 'hourly') {
+                        return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                    } else {
+                        return date.toLocaleDateString();
+                    }
+                }).reverse();
+                
+                const vpdData = data.map(point => point.vpd).reverse();
+                const tempData = data.map(point => point.temperature).reverse();
+                const humidityData = data.map(point => point.humidity).reverse();
+                const dewPointData = data.map(point => point.dew_point).reverse();
+                
+                // Create or update chart
+                if (mainChart) {
+                    mainChart.destroy();
+                }
+                
+                canvas.style.display = 'block';
+                placeholder.style.display = 'none';
+                
+                const ctx = canvas.getContext('2d');
+                mainChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'VPD (kPa)',
+                            data: vpdData,
+                            borderColor: '#8858ed',
+                            backgroundColor: 'rgba(136, 88, 237, 0.1)',
+                            yAxisID: 'y',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Temperature (°F)',
+                            data: tempData,
+                            borderColor: '#FF6B6B',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            yAxisID: 'y1',
+                            tension: 0.4
+                        }, {
+                            label: 'Humidity (%)',
+                            data: humidityData,
+                            borderColor: '#4ECDC4',
+                            backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                            yAxisID: 'y1',
+                            tension: 0.4
+                        }, {
+                            label: 'Dew Point (°F)',
+                            data: dewPointData,
+                            borderColor: '#45B7D1',
+                            backgroundColor: 'rgba(69, 183, 209, 0.1)',
+                            yAxisID: 'y1',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                display: false  // Hide legend, we have custom one
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: range === 'live' ? 'Time' : 'Date/Time'
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'VPD (kPa)'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Temperature/Humidity'
+                                },
+                                grid: {
+                                    drawOnChartArea: false,
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            }
+                        },
+                        elements: {
+                            point: {
+                                radius: range === 'live' ? 4 : 2,
+                                hoverRadius: 6
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading chart data:', error);
+                placeholder.textContent = 'Error loading chart data';
+                canvas.style.display = 'none';
+                placeholder.style.display = 'block';
+            }
         }
 
-        // Navigation
-        function goHome() {
-            window.location.href = '/index.html';
-        }
-
-        function goToSettings() {
-            window.location.href = '/settings.html';
+        // Update statistics
+        async function updateStats(range) {
+            try {
+                if (range === 'live') {
+                    // Fetch current status for live data
+                    const response = await fetch('/api/status');
+                    const data = await response.json();
+                    
+                    // Update current VPD
+                    const vpdElement = document.querySelector('.stat-card:nth-child(1) .stat-value');
+                    if (vpdElement) {
+                        const vpdValue = data.current_vpd || 0.75;
+                        vpdElement.innerHTML = vpdValue.toFixed(2) + '<span class="stat-unit">kPa</span>';
+                    }
+                    
+                    // Update temperature
+                    const tempElement = document.querySelector('.stat-card:nth-child(2) .stat-value');
+                    if (tempElement) {
+                        const tempValue = data.current_temp || 68;
+                        tempElement.innerHTML = Math.round(tempValue) + '<span class="stat-unit">°F</span>';
+                    }
+                    
+                    // Update humidity
+                    const humidityElement = document.querySelector('.stat-card:nth-child(3) .stat-value');
+                    if (humidityElement) {
+                        const humidityValue = data.current_humidity || 60;
+                        humidityElement.innerHTML = Math.round(humidityValue) + '<span class="stat-unit">%</span>';
+                    }
+                    
+                    // Update dew point
+                    const dewPointElement = document.querySelector('.stat-card:nth-child(4) .stat-value');
+                    if (dewPointElement) {
+                        const dewPointValue = data.dew_point || 55;
+                        dewPointElement.innerHTML = Math.round(dewPointValue) + '<span class="stat-unit">°F</span>';
+                    }
+                    
+                    // Update phase info
+                    const phaseElement = document.querySelector('.stat-card:nth-child(5) .stat-value');
+                    if (phaseElement) {
+                        const phase = data.current_phase || 'idle';
+                        phaseElement.textContent = phase.replace('_', ' ').toUpperCase();
+                    }
+                    
+                    // Update runtime
+                    const runtimeElement = document.querySelector('.stat-card:nth-child(6) .stat-value');
+                    if (runtimeElement && data.elapsed_hours) {
+                        const hours = Math.floor(data.elapsed_hours);
+                        const minutes = Math.floor((data.elapsed_hours - hours) * 60);
+                        runtimeElement.textContent = `${hours}h ${minutes}m`;
+                    }
+                    
+                } else {
+                    // For historical data, calculate averages from history API
+                    const apiRangeMap = {
+                        'hourly': '1h',
+                        'daily': '24h', 
+                        'weekly': '7d',
+                        'session': '7d'
+                    };
+                    
+                    const apiRange = apiRangeMap[range] || '24h';
+                    const response = await fetch(`/api/history/${apiRange}`);
+                    const data = await response.json();
+                    
+                    if (data.length > 0) {
+                        // Calculate averages
+                        const avgVPD = data.reduce((sum, point) => sum + point.vpd, 0) / data.length;
+                        const avgTemp = data.reduce((sum, point) => sum + point.temperature, 0) / data.length;
+                        const avgHumidity = data.reduce((sum, point) => sum + point.humidity, 0) / data.length;
+                        const avgDewPoint = data.reduce((sum, point) => sum + point.dew_point, 0) / data.length;
+                        
+                        // Update displays
+                        document.querySelector('.stat-card:nth-child(1) .stat-value').innerHTML = 
+                            avgVPD.toFixed(2) + '<span class="stat-unit">kPa</span>';
+                        document.querySelector('.stat-card:nth-child(2) .stat-value').innerHTML = 
+                            Math.round(avgTemp) + '<span class="stat-unit">°F</span>';
+                        document.querySelector('.stat-card:nth-child(3) .stat-value').innerHTML = 
+                            Math.round(avgHumidity) + '<span class="stat-unit">%</span>';
+                        document.querySelector('.stat-card:nth-child(4) .stat-value').innerHTML = 
+                            Math.round(avgDewPoint) + '<span class="stat-unit">°F</span>';
+                    }
+                }
+                
+                // Clear any existing live update interval
+                if (window.liveUpdateInterval) {
+                    clearInterval(window.liveUpdateInterval);
+                }
+                
+                // Set up live updates for live mode
+                if (range === 'live') {
+                    window.liveUpdateInterval = setInterval(() => updateStats('live'), 5000);
+                }
+                
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
         }
 
         // Export functionality
-        function exportReport() {
-            const timeRange = document.querySelector('.time-button.active').textContent;
+        async function exportReport() {
+            const timeRange = document.querySelector('.time-button.active').textContent.toLowerCase();
             const session = document.getElementById('sessionSelect').value;
             
-            console.log('Exporting report for:', {
-                timeRange: timeRange,
-                session: session
-            });
-            
-            // This would trigger actual export
-            alert('Report export started...');
+            try {
+                let data;
+                let filename;
+                
+                if (timeRange === 'live') {
+                    // Export current status
+                    const response = await fetch('/api/status');
+                    data = await response.json();
+                    filename = `cannabis-dryer-status-${new Date().toISOString().split('T')[0]}.json`;
+                } else {
+                    // Export historical data
+                    const apiRangeMap = {
+                        'hourly': '1h',
+                        'daily': '24h', 
+                        'weekly': '7d',
+                        'session': '7d'
+                    };
+                    
+                    const apiRange = apiRangeMap[timeRange] || '24h';
+                    const response = await fetch(`/api/history/${apiRange}`);
+                    data = await response.json();
+                    filename = `cannabis-dryer-history-${timeRange}-${new Date().toISOString().split('T')[0]}.json`;
+                }
+                
+                // Create and download file
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log('Report exported:', filename);
+                
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Export failed. Check console for details.');
+            }
         }
 
-        // Initialize
-        updateTime();
-        setInterval(updateTime, 60000);
-        
-        // Start with live data
-        updateChart('live');
-        updateStats('live');
+        // Initialize page on load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Start time updates
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // Load initial data
+            updateChart('live');
+            updateStats('live');
+            
+            // Set default time range button
+            document.querySelector('.time-button').classList.add('active');
+        });
     </script>
 </body>
 </html>

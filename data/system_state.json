@@ -1,0 +1,15 @@
+{
+  "process_active": false,
+  "current_phase": "dry_initial",
+  "process_start_time": null,
+  "phase_start_time": "2025-10-01T15:08:45.112043",
+  "equipment_states": {
+    "dehum": "ON",
+    "hum_solenoid": "OFF",
+    "hum_fan": "ON",
+    "erv": "ON",
+    "supply_fan": "ON",
+    "return_fan": "ON",
+    "mini_split": "ON"
+  }
+}
