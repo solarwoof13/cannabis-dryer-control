@@ -642,6 +642,35 @@ def hold_process():
         controller.current_phase = DryingPhase.STORAGE
         controller.phase_start_time = datetime.now()
         
+        # Force equipment states for storage mode immediately
+        if equipment_controller:
+            logger.info("Forcing equipment states for STORAGE mode")
+            
+            # Storage mode: fans running, humidity monitoring active
+            storage_states = {
+                'mini_split': 'ON',    # Maintain temperature
+                'supply_fan': 'ON',    # Keep air circulating
+                'return_fan': 'ON',    # Keep air circulating
+                'hum_fan': 'ON',       # Always on for humidity monitoring
+                'hum_solenoid': 'OFF', # Will be controlled by humidity
+                'dehum': 'OFF',        # Will be controlled by humidity
+                'erv': 'OFF'           # No fresh air exchange
+            }
+            
+            # Apply states directly
+            for equipment, state in storage_states.items():
+                if equipment in equipment_controller.actual_states:
+                    equipment_controller.actual_states[equipment] = state
+                    equipment_controller._apply_state(equipment, state)
+            
+            # Update VPD controller states
+            from software.control.vpd_controller import EquipmentState
+            for equipment, state in equipment_controller.actual_states.items():
+                controller.equipment_states[equipment] = \
+                    EquipmentState.ON if state == 'ON' else EquipmentState.OFF
+            
+            logger.info(f"STORAGE mode states applied: {equipment_controller.actual_states}")
+        
         # Save state
         state_manager = StateManager()
         state_manager.save_state({
@@ -649,7 +678,7 @@ def hold_process():
             'current_phase': 'storage',
             'process_start_time': controller.process_start_time,
             'phase_start_time': controller.phase_start_time,
-            'equipment_states': {}
+            'equipment_states': equipment_controller.actual_states if equipment_controller else {}
         })
         
         logger.info("Process put on HOLD - entering STORAGE mode")
@@ -659,6 +688,7 @@ def hold_process():
             'message': 'Process on hold - storage mode active'
         })
     except Exception as e:
+        logger.error(f"Hold process error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/process/stop', methods=['POST'])  

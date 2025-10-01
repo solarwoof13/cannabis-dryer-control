@@ -278,23 +278,34 @@ class PrecisionEquipmentController:
             
             # === STORAGE MODE (HOLD) ===
             if phase == 'storage':
-                logger.info("STORAGE MODE: Minimal equipment operation with occasional ventilation")
-                # Storage mode: minimal operation - just maintain conditions
+                logger.info("STORAGE MODE: Fans running, humidity monitoring active")
+                # Storage mode: maintain air circulation and humidity control
                 new_states['mini_split'] = 'ON'  # Maintain temperature
-                new_states['supply_fan'] = 'OFF'
-                new_states['return_fan'] = 'OFF'
-                new_states['hum_fan'] = 'OFF'
-                new_states['hum_solenoid'] = 'OFF'
-                new_states['dehum'] = 'OFF'
+                new_states['supply_fan'] = 'ON'  # Keep air circulating
+                new_states['return_fan'] = 'ON'  # Keep air circulating
+                new_states['hum_fan'] = 'ON'     # Always on for humidity monitoring
+                new_states['erv'] = 'OFF'        # No fresh air exchange needed
                 
-                # Cycle ERV occasionally for fresh air (5 minutes every 30 minutes)
-                current_minute = time.time() // 60 % 30
-                if current_minute < 5:  # 5 minutes every 30 minutes
-                    new_states['erv'] = 'ON'
-                    new_states['supply_fan'] = 'ON'
-                    new_states['return_fan'] = 'ON'
+                # Storage humidity targets (from VPD controller STORAGE setpoint)
+                storage_humidity_min = 60.0
+                storage_humidity_max = 65.0
+                
+                # Humidity control based on current conditions
+                if current_humidity < storage_humidity_min - self.hysteresis['humidity']:
+                    # Too dry - activate humidifier
+                    new_states['hum_solenoid'] = 'ON'
+                    new_states['dehum'] = 'OFF'
+                    logger.info(f"STORAGE: Humidifier ON (RH {current_humidity:.1f}% < {storage_humidity_min:.1f}%)")
+                elif current_humidity > storage_humidity_max + self.hysteresis['humidity']:
+                    # Too humid - activate dehumidifier
+                    new_states['hum_solenoid'] = 'OFF'
+                    new_states['dehum'] = 'ON'
+                    logger.info(f"STORAGE: Dehumidifier ON (RH {current_humidity:.1f}% > {storage_humidity_max:.1f}%)")
                 else:
-                    new_states['erv'] = 'OFF'
+                    # Humidity OK - everything off
+                    new_states['hum_solenoid'] = 'OFF'
+                    new_states['dehum'] = 'OFF'
+                    logger.info(f"STORAGE: Humidity OK (RH {current_humidity:.1f}% in {storage_humidity_min:.1f}-{storage_humidity_max:.1f}%)")
                 
                 return new_states
             
