@@ -108,6 +108,90 @@ class PrecisionEquipmentController:
                     GPIO.output(pin, gpio_state)
                     logger.info(f"Initial state applied: {equipment} = {state} (GPIO {pin} = {'LOW' if state == 'ON' else 'HIGH'})")
 
+    # ADD THESE METHODS TO: software/control/precision_equipment_control.py
+    # Add after the __init__ method and before set_control_mode
+
+    def emergency_stop(self):
+        """Emergency stop - immediately turn OFF all equipment"""
+        logger.critical("🔴 EMERGENCY STOP ACTIVATED - Turning OFF all equipment")
+        
+        if not self.gpio_initialized:
+            logger.error("GPIO not initialized - cannot execute emergency stop")
+            return False
+        
+        try:
+            import RPi.GPIO as GPIO
+            
+            # Turn off ALL GPIO pins immediately
+            for equipment, pin in self.gpio_pins.items():
+                GPIO.output(pin, GPIO.HIGH)  # HIGH = OFF (Active LOW relays)
+                self.actual_states[equipment] = 'OFF'
+                logger.info(f"EMERGENCY STOP: {equipment} = OFF (GPIO {pin} = HIGH)")
+            
+            # Also update VPD controller states
+            from software.control.vpd_controller import EquipmentState
+            for equipment in self.actual_states.keys():
+                if hasattr(self.vpd_controller, 'equipment_states'):
+                    self.vpd_controller.equipment_states[equipment] = EquipmentState.OFF
+            
+            logger.critical("✓ Emergency stop complete - all equipment OFF")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error during emergency stop: {e}")
+            return False
+
+    def _apply_state(self, equipment: str, state: str):
+        """Apply state to actual GPIO/hardware"""
+        if not self.gpio_initialized:
+            logger.warning(f"GPIO not initialized - cannot apply {equipment} = {state}")
+            return False
+        
+        if equipment not in self.gpio_pins:
+            logger.warning(f"Equipment {equipment} not in GPIO pins")
+            return False
+        
+        try:
+            import RPi.GPIO as GPIO
+            
+            pin = self.gpio_pins[equipment]
+            
+            # Active LOW logic: LOW = ON, HIGH = OFF
+            if state == 'ON':
+                GPIO.output(pin, GPIO.LOW)
+                logger.info(f"{equipment} = ON (GPIO {pin} = LOW)")
+            else:  # OFF or any other state
+                GPIO.output(pin, GPIO.HIGH)
+                logger.info(f"{equipment} = OFF (GPIO {pin} = HIGH)")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error applying state for {equipment}: {e}")
+            return False
+
+    # OPTIONAL: Add a cleanup method for safe shutdown
+    def cleanup(self):
+        """Clean up GPIO on shutdown - turn everything OFF"""
+        logger.info("Cleaning up GPIO - turning all equipment OFF")
+        
+        if not self.gpio_initialized:
+            return
+        
+        try:
+            import RPi.GPIO as GPIO
+            
+            # Turn off all relays
+            for pin in self.gpio_pins.values():
+                GPIO.output(pin, GPIO.HIGH)  # HIGH = OFF
+            
+            # Cleanup GPIO
+            GPIO.cleanup()
+            logger.info("GPIO cleanup complete")
+            
+        except Exception as e:
+            logger.error(f"Error during GPIO cleanup: {e}")
+
     def set_control_mode(self, equipment: str, mode: str):
         """Set control mode for equipment (AUTO/ON/OFF)"""
         if equipment in self.control_modes:
