@@ -238,6 +238,8 @@ class PrecisionEquipmentController:
         
         if equipment not in self.gpio_pins:
             logger.debug(f"No GPIO pin for {equipment} (OK for mini_split)")
+            # Still update actual_states even for equipment without GPIO pins
+            self.actual_states[equipment] = state
             return True  # Not an error for equipment without GPIO pins
         
         try:
@@ -249,6 +251,9 @@ class PrecisionEquipmentController:
             # Set the GPIO pin to the desired state
             GPIO.output(pin, gpio_state)
             logger.info(f"  ➡️  {equipment} set to {state} (GPIO {pin} = {'LOW' if state == 'ON' else 'HIGH'})")
+            
+            # CRITICAL: Update actual_states when GPIO operation succeeds
+            self.actual_states[equipment] = state
             return True
             
         except Exception as e:
@@ -492,6 +497,7 @@ class PrecisionEquipmentController:
             if current_humidity > 65:  # Too humid
                 new_states['dehum'] = 'ON'
                 new_states['hum_solenoid'] = 'OFF'
+                new_states['hum_fan'] = 'OFF'
                 logger.info(f"STORAGE: Dehumidifier ON (RH {current_humidity:.1f}% > 65%)")
             elif current_humidity < 55:  # Too dry
                 new_states['hum_solenoid'] = 'ON'
@@ -508,7 +514,8 @@ class PrecisionEquipmentController:
             # Mini-split stays on for temperature, fans stay on for circulation
             return new_states
         
-        # ACTIVE DRYING/CURING PHASES
+        # ACTIVE DRYING/CURING PHASES - ERV should be ON for air exchange
+        new_states['erv'] = 'ON'  # Enable ERV for air exchange during active drying
         
         # Calculate VPD target midpoint and error
         vpd_target = (target_vpd_min + target_vpd_max) / 2
