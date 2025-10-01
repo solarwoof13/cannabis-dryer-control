@@ -1097,8 +1097,9 @@
                     stopBtn.classList.add('active');
                     stopBtn.disabled = false;
                 }
+                // Allow resuming from emergency with start or hold buttons
                 if (startBtn) startBtn.disabled = false;
-                if (holdBtn) holdBtn.disabled = true; // Can't go to hold from emergency
+                if (holdBtn) holdBtn.disabled = false;
                 
             } else {
                 // IDLE state - all buttons normal (not highlighted)
@@ -1869,11 +1870,34 @@
             // Hook up the start button 
             const startBtn = document.getElementById('start-btn');
             if (startBtn) {
+
                 startBtn.addEventListener('click', () => {
                     if (systemState === 'idle' || systemState === 'complete') {
                         startProcess();
+                    } else if (cycleState === 'emergency') {
+                        // Resume from emergency stop
+                        if (confirm('Resume normal operation from emergency stop?')) {
+                            fetch('/api/process/start', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({ resume_from_emergency: true })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Resumed from emergency:', data);
+                                cycleState = 'running';
+                                systemState = 'running';
+                                updateButtonStates();
+                                updateSystemModeDisplay();
+                                updateFromController();
+                            })
+                            .catch(err => {
+                                console.error('Failed to resume from emergency:', err);
+                                alert('Failed to resume. Check system status.');
+                            });
+                        }
                     } else {
-                        alert('Process is already running or in emergency state!');
+                        alert('Process is already running!');
                     }
                 });
             }
