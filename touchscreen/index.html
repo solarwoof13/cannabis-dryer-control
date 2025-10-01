@@ -564,7 +564,7 @@
 
         .phase-text {
             color: white;
-            font-size: 10px;
+            font-size: 8px;
             font-weight: 700;
             z-index: 1;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -1262,13 +1262,13 @@
                 dryingBar.style.width = `${dryingProgress}%`;
                 
                 if (dryingProgress >= 100) {
-                    dryingText.textContent = 'COMPLETE';
+                    dryingText.textContent = 'DONE';
                 } else if (currentPhase && currentPhase.startsWith('dry_')) {
-                    dryingText.textContent = `${dryingProgress}% - ACTIVE`;
+                    dryingText.textContent = `${dryingProgress}%`;
                 } else if (dryingProgress > 0) {
-                    dryingText.textContent = `${dryingProgress}% - PENDING`;
+                    dryingText.textContent = `${dryingProgress}%`;
                 } else {
-                    dryingText.textContent = '0% - NOT STARTED';
+                    dryingText.textContent = '0%';
                 }
                 
                 if (dryingProgress >= 100) {
@@ -1310,13 +1310,13 @@
                 curingBar.style.width = `${curingProgress}%`;
                 
                 if (curingProgress >= 100) {
-                    curingText.textContent = 'COMPLETE';
+                    curingText.textContent = 'DONE';
                 } else if (currentPhase === 'cure') {
-                    curingText.textContent = `${curingProgress}% - ACTIVE`;
+                    curingText.textContent = `${curingProgress}%`;
                 } else if (curingProgress > 0) {
-                    curingText.textContent = `${curingProgress}% - PENDING`;
+                    curingText.textContent = `${curingProgress}%`;
                 } else {
-                    curingText.textContent = '0% - NOT STARTED';
+                    curingText.textContent = '0%';
                 }
                 
                 if (curingProgress >= 100) {

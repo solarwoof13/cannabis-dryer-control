@@ -640,9 +640,12 @@ def start_process():
         resume_from_emergency = data.get('resume_from_emergency', False)
         resume_from_hold = data.get('resume_from_hold', False)
         
-        if resume_from_emergency and hasattr(controller, 'process_start_time') and controller.process_start_time:
+        if resume_from_emergency:
             # Resume existing process from emergency
             controller.process_active = True
+            # If process_start_time was cleared, restore it
+            if not hasattr(controller, 'process_start_time') or controller.process_start_time is None:
+                controller.process_start_time = datetime.now()  # Restore with current time
             # Keep existing phase and times
             logger.info(f"Process RESUMED from emergency - Phase: {controller.current_phase}")
             
@@ -792,7 +795,8 @@ def emergency_stop():
         
         # Stop the process
         controller.process_active = False
-        controller.current_phase = DryingPhase.IDLE if hasattr(DryingPhase, 'IDLE') else DryingPhase.STORAGE
+        # Don't change phase during emergency - keep current phase for resume
+        # controller.current_phase = DryingPhase.IDLE if hasattr(DryingPhase, 'IDLE') else DryingPhase.STORAGE
         
         # Turn off ALL equipment using equipment controller
         if equipment_controller and hasattr(equipment_controller, 'emergency_stop'):
@@ -809,9 +813,9 @@ def emergency_stop():
         state_manager = StateManager()
         state_manager.save_state({
             'process_active': False,
-            'current_phase': 'idle',
-            'process_start_time': None,
-            'phase_start_time': None,
+            'current_phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase),
+            'process_start_time': controller.process_start_time,  # Keep existing start time
+            'phase_start_time': controller.phase_start_time,
             'equipment_states': {k: 'OFF' for k in controller.equipment_states.keys() if hasattr(controller, 'equipment_states')}
         })
         
