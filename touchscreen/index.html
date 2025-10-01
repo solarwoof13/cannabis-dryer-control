@@ -1051,6 +1051,7 @@
         function updateButtonStates() {
             const startBtn = document.getElementById('start-btn');
             const holdBtn = document.getElementById('hold-btn');
+            const stopBtn = document.querySelector('.emergency-button');
             
             if (startBtn) {
                 startBtn.disabled = (cycleState === 'running' || cycleState === 'holding');
@@ -1058,10 +1059,21 @@
             
             if (holdBtn) {
                 holdBtn.disabled = (cycleState !== 'running');
+                
+                // Remove highlight if not in holding state
                 if (cycleState === 'holding') {
                     holdBtn.classList.add('active');
                 } else {
                     holdBtn.classList.remove('active');
+                }
+            }
+            
+            // Highlight emergency stop button when in emergency state
+            if (stopBtn) {
+                if (cycleState === 'emergency') {
+                    stopBtn.classList.add('active');
+                } else {
+                    stopBtn.classList.remove('active');
                 }
             }
         }
@@ -1345,22 +1357,33 @@
         }
 
         function emergencyStop() {
-            if (confirm('EMERGENCY STOP: This will halt all equipment immediately. Confirm?')) {
+            if (confirm('EMERGENCY STOP - Turn off all equipment?\n\nThis cannot be undone!')) {
                 console.log('Emergency stop activated');
-                // Update all equipment to OFF
-                document.querySelectorAll('.equipment-item').forEach(item => {
-                    item.classList.remove('on', 'idle');
-                    item.classList.add('off');
-                    const statusText = item.querySelector('.equipment-status-text');
-                    if (statusText) statusText.textContent = 'OFF';
-                });
                 
-                // Call backend API - fixed port number
+                // Call backend API
                 fetch('/api/emergency-stop', { 
                     method: 'POST' 
-                }).catch(err => console.error('Emergency stop API error:', err));
-                cycleState = 'emergency';
-                updateButtonStates();
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Emergency stop response:', data);
+                    
+                    // Update all equipment display to OFF
+                    document.querySelectorAll('.equipment-item').forEach(item => {
+                        item.classList.remove('on', 'idle');
+                        item.classList.add('off');
+                        const statusText = item.querySelector('.equipment-status-text');
+                        if (statusText) statusText.textContent = 'OFF';
+                    });
+                    
+                    // Update system state
+                    cycleState = 'emergency';
+                    updateButtonStates();
+                    
+                    // Force dashboard refresh
+                    updateDashboard();
+                })
+                .catch(err => console.error('Emergency stop API error:', err));
             }
         }
 
