@@ -159,21 +159,28 @@ def get_status():
         # Build the complete status response
         # Include any existing status data and add our VPD specific data
         
-        # Map phase to frontend states
-        phase_value = current_phase.value if hasattr(current_phase, 'value') else str(current_phase)
-        
-        if phase_value == 'idle':
-            system_state = 'idle'
-            cycle_state = 'idle'
-        elif phase_value == 'storage':
-            system_state = 'holding'
-            cycle_state = 'holding'
-        elif process_active:
-            system_state = 'running'
-            cycle_state = 'running'
+        # Check for emergency state first
+        state_manager = StateManager()
+        saved_state = state_manager.load_state()
+        if saved_state.get('emergency_stop', False):
+            system_state = 'emergency'
+            cycle_state = 'emergency'
         else:
-            system_state = 'idle'
-            cycle_state = 'idle'
+            # Map phase to frontend states
+            phase_value = current_phase.value if hasattr(current_phase, 'value') else str(current_phase)
+            
+            if phase_value == 'idle':
+                system_state = 'idle'
+                cycle_state = 'idle'
+            elif phase_value == 'storage':
+                system_state = 'holding'
+                cycle_state = 'holding'
+            elif process_active:
+                system_state = 'running'
+                cycle_state = 'running'
+            else:
+                system_state = 'idle'
+                cycle_state = 'idle'
         
         # Calculate progress
         drying_progress = 0
@@ -639,6 +646,7 @@ def start_process():
         data = request.get_json() or {}
         resume_from_emergency = data.get('resume_from_emergency', False)
         resume_from_hold = data.get('resume_from_hold', False)
+        restart_process = data.get('restart_process', False)
         
         if resume_from_emergency:
             # Resume existing process from emergency
@@ -648,6 +656,12 @@ def start_process():
                 controller.process_start_time = datetime.now()  # Restore with current time
             # Keep existing phase and times
             logger.info(f"Process RESUMED from emergency - Phase: {controller.current_phase}")
+            
+            # Clear emergency flag
+            state_manager = StateManager()
+            saved_state = state_manager.load_state()
+            saved_state['emergency_stop'] = False
+            state_manager.save_state(saved_state)
             
             return jsonify({
                 'success': True,
@@ -663,6 +677,19 @@ def start_process():
             return jsonify({
                 'success': True,
                 'message': 'Process resumed from hold',
+                'phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase)
+            })
+        elif restart_process:
+            # Restart existing process - reset timers but keep current phase
+            controller.process_active = True
+            controller.process_start_time = datetime.now()
+            controller.phase_start_time = datetime.now()
+            # Keep current phase
+            logger.info(f"Process RESTARTED - Phase: {controller.current_phase}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Process restarted',
                 'phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase)
             })
         else:
@@ -816,7 +843,8 @@ def emergency_stop():
             'current_phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase),
             'process_start_time': controller.process_start_time,  # Keep existing start time
             'phase_start_time': controller.phase_start_time,
-            'equipment_states': {k: 'OFF' for k in controller.equipment_states.keys() if hasattr(controller, 'equipment_states')}
+            'equipment_states': {k: 'OFF' for k in controller.equipment_states.keys() if hasattr(controller, 'equipment_states')},
+            'emergency_stop': True  # Flag to indicate emergency state
         })
         
         # Get current equipment states for response

@@ -1073,39 +1073,23 @@
             if (stopBtn) stopBtn.classList.remove('active');
             
             // Set button enabled/disabled and highlight based on current state
+            // ALL buttons are always enabled for user control
+            if (startBtn) startBtn.disabled = false;
+            if (holdBtn) holdBtn.disabled = false;
+            if (stopBtn) stopBtn.disabled = false;
+            
+            // Highlight the active state
             if (cycleState === 'running') {
                 // START is active and highlighted
-                if (startBtn) {
-                    startBtn.classList.add('active');
-                    startBtn.disabled = false;
-                }
-                if (holdBtn) holdBtn.disabled = false;
-                if (stopBtn) stopBtn.disabled = false;
+                if (startBtn) startBtn.classList.add('active');
                 
             } else if (cycleState === 'holding') {
                 // HOLD is active and highlighted
-                if (holdBtn) {
-                    holdBtn.classList.add('active');
-                    holdBtn.disabled = false;
-                }
-                if (startBtn) startBtn.disabled = false;
-                if (stopBtn) stopBtn.disabled = false;
+                if (holdBtn) holdBtn.classList.add('active');
                 
             } else if (cycleState === 'emergency') {
                 // EMERGENCY STOP is active and highlighted
-                if (stopBtn) {
-                    stopBtn.classList.add('active');
-                    stopBtn.disabled = false;
-                }
-                // Allow resuming from emergency with start or hold buttons
-                if (startBtn) startBtn.disabled = false;
-                if (holdBtn) holdBtn.disabled = false;
-                
-            } else {
-                // IDLE state - all buttons normal (not highlighted)
-                if (startBtn) startBtn.disabled = false;
-                if (holdBtn) holdBtn.disabled = true; // Can only hold when running
-                if (stopBtn) stopBtn.disabled = false;
+                if (stopBtn) stopBtn.classList.add('active');
             }
         }
 
@@ -1697,7 +1681,7 @@
                             item.classList.remove('on', 'off', 'idle');
                         });
                         
-                        // Track humidifier state (combination of solenoid and fan)
+                        // Track humidifier state (combination of solenoid
                         let humState = 'off';
                         
                         Object.entries(data.equipment).forEach(([backendName, state]) => {
@@ -1918,8 +1902,30 @@
                                 alert('Failed to resume. Check system status.');
                             });
                         }
+                    } else if (cycleState === 'running') {
+                        // Restart process from running state
+                        if (confirm('Restart the drying process? This will reset timers and start fresh.')) {
+                            fetch('/api/process/start', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({ restart_process: true })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Process restarted:', data);
+                                cycleState = 'running';
+                                systemState = 'running';
+                                updateButtonStates();
+                                updateSystemModeDisplay();
+                                updateFromController();
+                            })
+                            .catch(err => {
+                                console.error('Failed to restart process:', err);
+                                alert('Failed to restart. Check system status.');
+                            });
+                        }
                     } else {
-                        alert('Process is already running!');
+                        alert('Unable to start process from current state.');
                     }
                 });
             }
@@ -1930,26 +1936,26 @@
             const holdBtn = document.getElementById('hold-btn');
             if (holdBtn) {
                 holdBtn.addEventListener('click', () => {
-                    // Allow Hold from running OR emergency state
-                    if (cycleState === 'running' || cycleState === 'emergency') {
-                        const confirmMsg = cycleState === 'emergency' 
-                            ? 'Recover from emergency stop into storage/hold mode?' 
-                            : 'Switch to storage/hold mode?';
-                        
-                        if (confirm(confirmMsg)) {
-                            fetch('/api/process/hold', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'}
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log('Switched to hold/storage:', data);
-                                cycleState = 'holding';
-                                updateButtonStates();
-                                updateDashboard();
-                            })
-                            .catch(err => console.error('Hold process error:', err));
-                        }
+                    // Allow Hold from any state - will transition to storage/hold mode
+                    const confirmMsg = cycleState === 'emergency' 
+                        ? 'Recover from emergency stop into storage/hold mode?' 
+                        : cycleState === 'idle'
+                        ? 'Start process in storage/hold mode?'
+                        : 'Switch to storage/hold mode?';
+                    
+                    if (confirm(confirmMsg)) {
+                        fetch('/api/process/hold', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'}
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Switched to hold/storage:', data);
+                            cycleState = 'holding';
+                            updateButtonStates();
+                            updateDashboard();
+                        })
+                        .catch(err => console.error('Hold process error:', err));
                     }
                 });
             }

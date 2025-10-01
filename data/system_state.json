@@ -2,7 +2,7 @@
   "process_active": false,
   "current_phase": "dry_initial",
   "process_start_time": null,
-  "phase_start_time": "2025-10-01T15:08:45.112043",
+  "phase_start_time": "2025-10-01T16:56:36.652582",
   "equipment_states": {
     "dehum": "ON",
     "hum_solenoid": "OFF",
