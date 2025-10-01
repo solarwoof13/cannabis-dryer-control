@@ -207,94 +207,147 @@ class PrecisionEquipmentController:
                 self._apply_state(equipment, 'OFF')
 
     def calculate_automatic_control(self, current_vpd: float, target_vpd_min: float, 
-                                   target_vpd_max: float, current_dew_point: float,
-                                   target_dew_point: float, current_humidity: float,
-                                   phase: str) -> Dict[str, str]:
-        """
-        Calculate equipment states based on your exact logic
-        """
-        new_states = {}
-        
-        # Check if we're in storage/complete phase
-        is_storage = phase in ['storage', 'complete']
-        
-        # FANS - Always ON during dry/cure, controlled in storage
-        if not is_storage:
-            # During drying and curing - fans always ON
+                                    target_vpd_max: float, current_dew_point: float,
+                                    target_dew_point: float, current_humidity: float,
+                                    phase: str) -> Dict[str, str]:
+            """
+            Calculate equipment states based on VPD controller setpoints and current conditions.
+            Implements your research-optimized control logic.
+            
+            Args:
+                current_vpd: Current VPD in kPa
+                target_vpd_min: Minimum target VPD from phase setpoint
+                target_vpd_max: Maximum target VPD from phase setpoint
+                current_dew_point: Current dew point in °F
+                target_dew_point: Target dew point from phase setpoint
+                current_humidity: Current relative humidity %
+                phase: Current drying phase (dry_initial, dry_mid, dry_final, cure, storage)
+                
+            Returns:
+                Dictionary of equipment names to states ('ON' or 'OFF')
+            """
+            import time
+            
+            logger.info(f"Auto control: VPD={current_vpd:.2f} (target {target_vpd_min:.2f}-{target_vpd_max:.2f}), "
+                        f"DP={current_dew_point:.1f}°F (target {target_dew_point:.1f}°F), "
+                        f"RH={current_humidity:.1f}%, Phase={phase}")
+            
+            new_states = {}
+            
+            # === STORAGE MODE (HOLD) ===
+            if phase == 'storage':
+                logger.info("STORAGE MODE: 1-minute on/off cycling for humidifier")
+                # Storage mode: minimal conditioning, just maintain
+                new_states['dehum'] = 'OFF'
+                new_states['hum_solenoid'] = self._get_storage_hum_state()  # 1 min on/off cycle
+                new_states['hum_fan'] = 'ON' if new_states['hum_solenoid'] == 'ON' else 'OFF'
+                new_states['erv'] = 'ON'  # Minimal fresh air
+                new_states['supply_fan'] = 'ON'
+                new_states['return_fan'] = 'ON'
+                new_states['mini_split'] = 'ON'  # Temperature control
+                return new_states
+            
+            # === ACTIVE DRYING/CURING PHASES ===
+            
+            # Calculate VPD target midpoint and error
+            vpd_target = (target_vpd_min + target_vpd_max) / 2
+            vpd_error = current_vpd - vpd_target
+            
+            # Calculate dew point error
+            dew_error = current_dew_point - target_dew_point
+            
+            logger.info(f"Control errors: VPD_error={vpd_error:.3f} kPa, DP_error={dew_error:.2f}°F")
+            
+            # === PRIMARY CONTROL: VPD-BASED ===
+            
+            # VPD too HIGH (too dry) - Need to add moisture
+            if current_vpd > (target_vpd_max + self.vpd_deadband):
+                logger.info(f"VPD HIGH ({current_vpd:.2f} > {target_vpd_max:.2f}) - HUMIDIFYING")
+                
+                # Turn OFF dehumidifier (with minimum off time)
+                current_time = time.time()
+                if self.dehum_off_start is None:
+                    self.dehum_off_start = current_time
+                    new_states['dehum'] = 'OFF'
+                    logger.info("Dehumidifier turned OFF - starting minimum off timer")
+                elif (current_time - self.dehum_off_start) < self.dehum_min_off_time:
+                    new_states['dehum'] = 'OFF'
+                    remaining = self.dehum_min_off_time - (current_time - self.dehum_off_start)
+                    logger.info(f"Dehumidifier OFF - {remaining:.0f}s remaining in minimum off time")
+                else:
+                    # Minimum off time elapsed - can turn back on if needed
+                    if current_vpd < target_vpd_max:
+                        new_states['dehum'] = 'ON'
+                        self.dehum_off_start = None
+                        logger.info("Minimum off time complete - dehumidifier can turn ON if needed")
+                    else:
+                        new_states['dehum'] = 'OFF'
+                
+                # Calculate humidifier modulation based on VPD error
+                vpd_overshoot = current_vpd - target_vpd_max
+                # Scale modulation: 0.1 kPa error = 50% duty, 0.2 kPa = 100%
+                self.hum_modulation_rate = min(100.0, (vpd_overshoot / 0.2) * 100.0)
+                modulated_state = self._apply_modulation()
+                
+                new_states['hum_solenoid'] = modulated_state
+                new_states['hum_fan'] = 'ON'  # Fan always ON when humidifying
+                
+                logger.info(f"Humidifier modulation: {self.hum_modulation_rate:.1f}% duty cycle, state={modulated_state}")
+            
+            # VPD too LOW (too wet) - Need to remove moisture  
+            elif current_vpd < (target_vpd_min - self.vpd_deadband):
+                logger.info(f"VPD LOW ({current_vpd:.2f} < {target_vpd_min:.2f}) - DEHUMIDIFYING")
+                
+                # Dehumidifier ON
+                new_states['dehum'] = 'ON'
+                self.dehum_off_start = None  # Reset timer
+                
+                # Humidifier OFF
+                new_states['hum_solenoid'] = 'OFF'
+                new_states['hum_fan'] = 'OFF'
+                self.hum_modulation_rate = 0.0
+                
+                logger.info("Dehumidifier ON, Humidifier OFF")
+            
+            # VPD in range - MAINTAIN
+            else:
+                logger.info(f"VPD OK ({current_vpd:.2f} in range {target_vpd_min:.2f}-{target_vpd_max:.2f}) - MAINTAINING")
+                
+                # Fine-tune based on dew point to stay centered in range
+                if dew_error > self.dew_point_deadband:
+                    # Dew point too high - light dehumidification
+                    new_states['dehum'] = 'ON'
+                    new_states['hum_solenoid'] = 'OFF'
+                    new_states['hum_fan'] = 'OFF'
+                    logger.info(f"Dew point high ({current_dew_point:.1f}°F > {target_dew_point:.1f}°F) - light dehum")
+                
+                elif dew_error < -self.dew_point_deadband:
+                    # Dew point too low - light humidification
+                    new_states['dehum'] = 'OFF'
+                    self.hum_modulation_rate = 25.0  # Low duty cycle for maintenance
+                    new_states['hum_solenoid'] = self._apply_modulation()
+                    new_states['hum_fan'] = 'ON' if new_states['hum_solenoid'] == 'ON' else 'OFF'
+                    logger.info(f"Dew point low ({current_dew_point:.1f}°F < {target_dew_point:.1f}°F) - light humidification")
+                
+                else:
+                    # Perfect conditions - minimal intervention
+                    new_states['dehum'] = 'ON'  # Keep on for stability (your primary control)
+                    new_states['hum_solenoid'] = 'OFF'
+                    new_states['hum_fan'] = 'OFF'
+                    self.hum_modulation_rate = 0.0
+                    logger.info("Conditions optimal - minimal intervention")
+            
+            # === FANS: ALWAYS ON DURING DRYING/CURING ===
             new_states['supply_fan'] = 'ON'
             new_states['return_fan'] = 'ON'
             new_states['erv'] = 'ON'
-            new_states['hum_fan'] = 'ON'
-        else:
-            # Storage mode - only supply and return fans ON
-            new_states['supply_fan'] = 'ON'
-            new_states['return_fan'] = 'ON'
-            new_states['erv'] = 'OFF'
-            new_states['hum_fan'] = 'OFF'  # Only on when humidifying
-        
-        # Calculate VPD and Dew Point errors
-        vpd_error = current_vpd - ((target_vpd_min + target_vpd_max) / 2)
-        dew_point_error = current_dew_point - target_dew_point
-        
-        # DEHUMIDIFIER CONTROL (Your spec: always ON unless actively humidifying)
-        if not is_storage:
-            # Normal operation - dehum is default ON
-            if vpd_error > self.vpd_deadband or dew_point_error < -self.dew_point_deadband:
-                # VPD too high or dew point too low - need humidification
-                # Check if we've been trying to humidify for 5 minutes
-                if self.dehum_off_start is None:
-                    self.dehum_off_start = time.time()
-                    new_states['dehum'] = 'ON'  # Keep on initially
-                elif time.time() - self.dehum_off_start > self.dehum_min_off_time:
-                    # Been trying for 5 minutes - turn off dehum to allow humidification
-                    new_states['dehum'] = 'OFF'
-                    new_states['hum_solenoid'] = 'ON'
-                    logger.info("Dehumidifier OFF after 5 min - allowing humidification")
-                else:
-                    # Still waiting the 5 minutes
-                    new_states['dehum'] = 'ON'
-                    new_states['hum_solenoid'] = 'OFF'
-            else:
-                # VPD and dew point OK - dehum stays ON as default
-                new_states['dehum'] = 'ON'
-                new_states['hum_solenoid'] = 'OFF'
-                self.dehum_off_start = None  # Reset timer
-        else:
-            # Storage mode - use as needed
-            if current_humidity > 65:
-                new_states['dehum'] = 'ON'
-                new_states['hum_solenoid'] = 'OFF'
-                new_states['hum_fan'] = 'OFF'
-            elif current_humidity < 58:
-                new_states['dehum'] = 'OFF'
-                # Cycle humidifier 1 min on/off
-                new_states['hum_fan'] = 'ON'
-                new_states['hum_solenoid'] = self._get_storage_hum_state()
-            else:
-                new_states['dehum'] = 'OFF'
-                new_states['hum_solenoid'] = 'OFF'
-                new_states['hum_fan'] = 'OFF'
-        
-        # HUMIDIFIER MODULATION (when approaching target)
-        if not is_storage and new_states.get('hum_solenoid') == 'ON':
-            # Calculate modulation rate based on how close we are
-            if vpd_error > 0.2:  # Far from target
-                self.hum_modulation_rate = 100  # Full on
-            elif vpd_error > 0.1:
-                self.hum_modulation_rate = 70
-            elif vpd_error > self.vpd_deadband:
-                self.hum_modulation_rate = 40
-            else:
-                self.hum_modulation_rate = 20  # Gentle approach
             
-            # Apply modulation
-            modulated_state = self._apply_modulation()
-            new_states['hum_solenoid'] = modulated_state
-        
-        # Mini-split always ON (temperature controlled via IR)
-        new_states['mini_split'] = 'ON'
-        
-        return new_states
+            # === MINI-SPLIT: ALWAYS ON (temperature control via IR - not implemented yet) ===
+            new_states['mini_split'] = 'ON'
+            
+            logger.info(f"Final equipment states: {new_states}")
+            
+            return new_states
 
     def _apply_modulation(self) -> str:
         """Apply PWM-style modulation to humidifier"""
