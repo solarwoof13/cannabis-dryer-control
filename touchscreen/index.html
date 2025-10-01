@@ -180,6 +180,12 @@
             box-shadow: 0 4px 10px rgba(255, 0, 0, 0.4);
         }
 
+        .emergency-button.active {
+            background: linear-gradient(135deg, #FF0000, #CC0000) !important;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.8) !important;
+            transform: scale(1.05);
+        }
+
         .start-button {
             background: linear-gradient(135deg, rgba(0, 195, 16, 0.2), rgba(0, 227, 21, 0.1));
             border: 1px solid rgba(0, 195, 16, 0.4);
@@ -188,6 +194,12 @@
         .start-button:hover {
             background: linear-gradient(135deg, #00C310, #00E515);
             box-shadow: 0 4px 10px rgba(0, 195, 16, 0.4);
+        }
+
+        .start-button.active {
+            background: linear-gradient(135deg, #00E515, #00C310) !important;
+            box-shadow: 0 0 20px rgba(0, 229, 21, 0.8) !important;
+            transform: scale(1.05);
         }
 
         .hold-button {
@@ -201,7 +213,9 @@
         }
 
         .hold-button.active {
-            background: linear-gradient(135deg, #FFA500, #FF8C00);
+            background: linear-gradient(135deg, #FFB700, #FFA500) !important;
+            box-shadow: 0 0 20px rgba(255, 183, 0, 0.8) !important;
+            transform: scale(1.05);
         }
 
         /* MAIN CONTAINER - Adjusted for screen size */
@@ -1053,28 +1067,44 @@
             const holdBtn = document.getElementById('hold-btn');
             const stopBtn = document.querySelector('.emergency-button');
             
-            if (startBtn) {
-                startBtn.disabled = (cycleState === 'running' || cycleState === 'holding');
-            }
+            // Remove ALL active states first
+            if (startBtn) startBtn.classList.remove('active');
+            if (holdBtn) holdBtn.classList.remove('active');
+            if (stopBtn) stopBtn.classList.remove('active');
             
-            if (holdBtn) {
-                holdBtn.disabled = (cycleState !== 'running');
+            // Set button enabled/disabled and highlight based on current state
+            if (cycleState === 'running') {
+                // START is active and highlighted
+                if (startBtn) {
+                    startBtn.classList.add('active');
+                    startBtn.disabled = false;
+                }
+                if (holdBtn) holdBtn.disabled = false;
+                if (stopBtn) stopBtn.disabled = false;
                 
-                // Remove highlight if not in holding state
-                if (cycleState === 'holding') {
+            } else if (cycleState === 'holding') {
+                // HOLD is active and highlighted
+                if (holdBtn) {
                     holdBtn.classList.add('active');
-                } else {
-                    holdBtn.classList.remove('active');
+                    holdBtn.disabled = false;
                 }
-            }
-            
-            // Highlight emergency stop button when in emergency state
-            if (stopBtn) {
-                if (cycleState === 'emergency') {
+                if (startBtn) startBtn.disabled = false;
+                if (stopBtn) stopBtn.disabled = false;
+                
+            } else if (cycleState === 'emergency') {
+                // EMERGENCY STOP is active and highlighted
+                if (stopBtn) {
                     stopBtn.classList.add('active');
-                } else {
-                    stopBtn.classList.remove('active');
+                    stopBtn.disabled = false;
                 }
+                if (startBtn) startBtn.disabled = false;
+                if (holdBtn) holdBtn.disabled = true; // Can't go to hold from emergency
+                
+            } else {
+                // IDLE state - all buttons normal (not highlighted)
+                if (startBtn) startBtn.disabled = false;
+                if (holdBtn) holdBtn.disabled = true; // Can only hold when running
+                if (stopBtn) stopBtn.disabled = false;
             }
         }
 
@@ -1083,37 +1113,31 @@
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
-                    // Update system state variables
+                    // Sync cycle state from backend
+                    if (data.cycle_state) {
+                        cycleState = data.cycle_state;
+                    } else if (data.system_state) {
+                        cycleState = data.system_state;
+                    }
+                    
                     systemState = data.system_state || 'idle';
                     currentPhase = data.phase || 'idle';
                     dryingProgress = data.drying_progress || 0;
                     curingProgress = data.curing_progress || 0;
-                    phaseDay = data.phase_day || 0;
-                    totalPhaseDays = data.phase_total_days || 0;
                     
-                    // Update VPD values
-                    currentVPD = data.current_vpd;
-                    VPD_TARGET_MIN = data.vpd_target_min;
-                    VPD_TARGET_MAX = data.vpd_target_max;
-                    
-                    // Update all displays
-                    updateDashboard();  // This fetches and updates sensor displays
+                    // Update displays
+                    updateButtonStates();
                     updateSystemModeDisplay();
                     updateProgressBars();
                     updateVPDDisplay();
-                    
-                    // These might not be needed since updateDashboard handles sensors
-                    // updateSensorDisplays(data.sensors);
-                    // updateEquipmentStatus(data.equipment);
                 })
                 .catch(error => {
                     console.log('Waiting for backend...', error);
-                    // Set default idle state when no backend
+                    cycleState = 'idle';
                     systemState = 'idle';
-                    currentPhase = 'idle';
+                    updateButtonStates();
                     updateSystemModeDisplay();
                 });
-                
         }
 
        // Update the VPD display function to use the new variables
@@ -1357,10 +1381,9 @@
         }
 
         function emergencyStop() {
-            if (confirm('EMERGENCY STOP - Turn off all equipment?\n\nThis cannot be undone!')) {
+            if (confirm('EMERGENCY STOP\n\nThis will immediately stop ALL equipment.\nAre you sure?')) {
                 console.log('Emergency stop activated');
                 
-                // Call backend API
                 fetch('/api/emergency-stop', { 
                     method: 'POST' 
                 })
@@ -1376,11 +1399,9 @@
                         if (statusText) statusText.textContent = 'OFF';
                     });
                     
-                    // Update system state
+                    // Update state to emergency
                     cycleState = 'emergency';
                     updateButtonStates();
-                    
-                    // Force dashboard refresh
                     updateDashboard();
                 })
                 .catch(err => console.error('Emergency stop API error:', err));
@@ -1758,22 +1779,19 @@
             const startBtn = document.getElementById('start-btn');
             if (startBtn) {
                 startBtn.addEventListener('click', () => {
-                    if (cycleState === 'idle' || cycleState === 'emergency' || !cycleState) {
-                        if (confirm('Start new 10-day drying and curing cycle?')) {
-                            fetch('/api/process/start', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'}
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log('Process started:', data);
-                                cycleState = 'running';
-                                updateButtonStates();
-                                // Refresh dashboard immediately
-                                updateDashboard();
-                            })
-                            .catch(err => console.error('Start process error:', err));
-                        }
+                    if (confirm('Start new drying and curing cycle?')) {
+                        fetch('/api/process/start', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'}
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Process started:', data);
+                            cycleState = 'running';
+                            updateButtonStates();
+                            updateDashboard();
+                        })
+                        .catch(err => console.error('Start process error:', err));
                     }
                 });
             }
@@ -1793,7 +1811,6 @@
                                 console.log('Switched to hold/storage:', data);
                                 cycleState = 'holding';
                                 updateButtonStates();
-                                // Refresh dashboard immediately
                                 updateDashboard();
                             })
                             .catch(err => console.error('Hold process error:', err));
