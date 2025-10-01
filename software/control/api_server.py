@@ -199,9 +199,13 @@ def get_status():
                 drying_progress = 100
                 curing_progress = 100
         
-        # Get equipment states
+        # Get equipment states from equipment controller (actual GPIO states)
         equipment = {}
-        if hasattr(controller, 'equipment_states'):
+        if equipment_controller and hasattr(equipment_controller, 'actual_states'):
+            # Use the actual GPIO states from equipment controller
+            equipment = equipment_controller.actual_states.copy()
+        elif hasattr(controller, 'equipment_states'):
+            # Fallback to VPD controller states
             equipment = {k: v.value if hasattr(v, 'value') else str(v) 
                         for k, v in controller.equipment_states.items()}
         

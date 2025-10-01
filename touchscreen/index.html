@@ -1807,8 +1807,13 @@
             const holdBtn = document.getElementById('hold-btn');
             if (holdBtn) {
                 holdBtn.addEventListener('click', () => {
-                    if (cycleState === 'running') {
-                        if (confirm('Switch to storage/hold mode?')) {
+                    // Allow Hold from running OR emergency state
+                    if (cycleState === 'running' || cycleState === 'emergency') {
+                        const confirmMsg = cycleState === 'emergency' 
+                            ? 'Recover from emergency stop into storage/hold mode?' 
+                            : 'Switch to storage/hold mode?';
+                        
+                        if (confirm(confirmMsg)) {
                             fetch('/api/process/hold', {
                                 method: 'POST',
                                 headers: {'Content-Type': 'application/json'}
