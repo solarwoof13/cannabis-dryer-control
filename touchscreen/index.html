@@ -1570,13 +1570,28 @@
                         }
                     }
                     
-                    // Calculate room averages (only from real sensors)
+                    // Calculate room averages (from dry room sensors)
                     let temps = [];
                     let humids = [];
                     
                     if (data.dry_room_1 && data.dry_room_1.temperature !== null) {
                         temps.push(data.dry_room_1.temperature);
                         humids.push(data.dry_room_1.humidity);
+                    }
+                    
+                    if (data.dry_room_2 && data.dry_room_2.temperature !== null) {
+                        temps.push(data.dry_room_2.temperature);
+                        humids.push(data.dry_room_2.humidity);
+                    }
+                    
+                    if (data.dry_room_3 && data.dry_room_3.temperature !== null) {
+                        temps.push(data.dry_room_3.temperature);
+                        humids.push(data.dry_room_3.humidity);
+                    }
+                    
+                    if (data.dry_room_4 && data.dry_room_4.temperature !== null) {
+                        temps.push(data.dry_room_4.temperature);
+                        humids.push(data.dry_room_4.humidity);
                     }
                     
                     if (temps.length > 0) {
@@ -1598,8 +1613,15 @@
                 .then(data => {
                     console.log('System status:', data);
                     
-                    // Update VPD
-                    if (data.vpd_current !== undefined) {
+                    // Update VPD - USE SUPPLY AIR VPD FOR DISPLAY
+                    if (data.supply_vpd !== undefined && data.supply_vpd !== null) {
+                        currentVPD = data.supply_vpd;
+                        updateVPDDisplay();
+                        
+                        const vpdEl = document.getElementById('vpd-current');
+                        if (vpdEl) vpdEl.textContent = currentVPD.toFixed(2) + ' kPa';
+                    } else if (data.vpd_current !== undefined) {
+                        // Fallback to dry room VPD if supply air not available
                         currentVPD = data.vpd_current;
                         updateVPDDisplay();
                         
@@ -1607,8 +1629,12 @@
                         if (vpdEl) vpdEl.textContent = currentVPD.toFixed(2) + ' kPa';
                     }
                     
-                    // Update dew point
-                    if (data.dew_point !== undefined) {
+                    // Update dew point - USE SUPPLY AIR DEW POINT
+                    if (data.supply_dew_point !== undefined && data.supply_dew_point !== null) {
+                        const dewEl = document.getElementById('avg-dewpoint');
+                        if (dewEl) dewEl.textContent = Math.round(data.supply_dew_point) + '°F';
+                    } else if (data.dew_point !== undefined) {
+                        // Fallback to dry room dew point if supply air not available
                         const dewEl = document.getElementById('avg-dewpoint');
                         if (dewEl) dewEl.textContent = Math.round(data.dew_point) + '°F';
                     }
@@ -1842,6 +1868,8 @@
                     // Allow Hold from running OR emergency state
                     if (cycleState === 'running' || cycleState === 'emergency') {
                         const confirmMsg = cycleState === 'emergency' 
+                            
+                            
                             ? 'Recover from emergency stop into storage/hold mode?' 
                             : 'Switch to storage/hold mode?';
                         
