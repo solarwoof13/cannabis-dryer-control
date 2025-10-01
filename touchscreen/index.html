@@ -1341,7 +1341,7 @@
             }
             
             if (confirm('Start new drying and curing process?\n\nThis will begin a new 8-day cycle.')) {
-                fetch('/api/start-cycle', {
+                fetch('/api/session/start', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({

@@ -676,6 +676,11 @@ def start_process():
             saved_state['emergency_stop'] = False
             state_manager.save_state(saved_state)
             
+            # Force equipment controller to sync hardware state immediately
+            if equipment_controller and hasattr(equipment_controller, 'sync_hardware_state'):
+                logger.info("Syncing hardware state after emergency resume")
+                equipment_controller.sync_hardware_state()
+            
             return jsonify({
                 'success': True,
                 'message': 'Process resumed from emergency',
@@ -1310,3 +1315,38 @@ def start_background_tasks():
         update_thread = threading.Thread(target=broadcast_updates, daemon=True)
         update_thread.start()
         logger.info("Background update thread started")
+
+@app.route('/api/debug/equipment', methods=['GET'])
+def debug_equipment():
+    """Debug endpoint to check equipment states and GPIO status"""
+    if not equipment_controller:
+        return jsonify({'error': 'Equipment controller not initialized'}), 503
+    
+    try:
+        # Get software states
+        software_states = equipment_controller.actual_states.copy()
+        
+        # Try to read hardware states
+        hardware_states = {}
+        if hasattr(equipment_controller, 'sync_hardware_state'):
+            # This will update actual_states to match hardware
+            equipment_controller.sync_hardware_state()
+            hardware_states = equipment_controller.actual_states.copy()
+        
+        # Get GPIO initialization status
+        gpio_status = {
+            'initialized': equipment_controller.gpio_initialized,
+            'pins': equipment_controller.gpio_pins if hasattr(equipment_controller, 'gpio_pins') else {}
+        }
+        
+        return jsonify({
+            'software_states': software_states,
+            'hardware_states': hardware_states,
+            'gpio_status': gpio_status,
+            'control_modes': {k: v.value if hasattr(v, 'value') else str(v) 
+                            for k, v in equipment_controller.control_modes.items()},
+            'process_active': equipment_controller.vpd_controller.process_active if hasattr(equipment_controller, 'vpd_controller') else None
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
