@@ -173,8 +173,13 @@ def get_status():
                 system_state = 'idle'
                 cycle_state = 'idle'
             elif phase_value == 'storage':
-                system_state = 'holding'
-                cycle_state = 'holding'
+                # Storage phase: if process is active, it's resumed from hold (running), otherwise it's holding
+                if process_active:
+                    system_state = 'running'
+                    cycle_state = 'running'
+                else:
+                    system_state = 'holding'
+                    cycle_state = 'holding'
             elif process_active:
                 system_state = 'running'
                 cycle_state = 'running'
