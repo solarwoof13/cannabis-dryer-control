@@ -466,9 +466,14 @@ class PrecisionEquipmentController:
                 self.vpd_controller.get_supply_air_conditions()
             logger.info(f"Supply air conditions: T={supply_temp:.1f}°F, RH={supply_humidity:.1f}%, DP={supply_dew_point:.1f}°F, VPD={supply_vpd:.2f} kPa")
         except Exception as e:
-            logger.error(f"Failed to get supply air sensor data: {e}")
-            logger.error("Cannot control equipment without supply air sensor data - maintaining current state")
-            return
+            logger.warning(f"Supply air sensor data not available: {e} - falling back to dry room conditions")
+            try:
+                supply_temp, supply_humidity, supply_dew_point, supply_vpd = \
+                    self.vpd_controller.get_dry_room_conditions()
+                logger.info(f"Using dry room conditions as fallback: T={supply_temp:.1f}°F, RH={supply_humidity:.1f}%, DP={supply_dew_point:.1f}°F, VPD={supply_vpd:.2f} kPa")
+            except Exception as e2:
+                logger.error(f"Dry room sensor data also not available: {e2} - cannot control equipment")
+                return
         
         # Get current phase and target setpoint
         try:
