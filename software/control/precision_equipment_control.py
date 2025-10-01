@@ -278,15 +278,24 @@ class PrecisionEquipmentController:
             
             # === STORAGE MODE (HOLD) ===
             if phase == 'storage':
-                logger.info("STORAGE MODE: 1-minute on/off cycling for humidifier")
-                # Storage mode: minimal conditioning, just maintain
+                logger.info("STORAGE MODE: Minimal equipment operation with occasional ventilation")
+                # Storage mode: minimal operation - just maintain conditions
+                new_states['mini_split'] = 'ON'  # Maintain temperature
+                new_states['supply_fan'] = 'OFF'
+                new_states['return_fan'] = 'OFF'
+                new_states['hum_fan'] = 'OFF'
+                new_states['hum_solenoid'] = 'OFF'
                 new_states['dehum'] = 'OFF'
-                new_states['hum_solenoid'] = self._get_storage_hum_state()  # 1 min on/off cycle
-                new_states['hum_fan'] = 'ON' if new_states['hum_solenoid'] == 'ON' else 'OFF'
-                new_states['erv'] = 'ON'  # Minimal fresh air
-                new_states['supply_fan'] = 'ON'
-                new_states['return_fan'] = 'ON'
-                new_states['mini_split'] = 'ON'  # Temperature control
+                
+                # Cycle ERV occasionally for fresh air (5 minutes every 30 minutes)
+                current_minute = time.time() // 60 % 30
+                if current_minute < 5:  # 5 minutes every 30 minutes
+                    new_states['erv'] = 'ON'
+                    new_states['supply_fan'] = 'ON'
+                    new_states['return_fan'] = 'ON'
+                else:
+                    new_states['erv'] = 'OFF'
+                
                 return new_states
             
             # === ACTIVE DRYING/CURING PHASES ===
