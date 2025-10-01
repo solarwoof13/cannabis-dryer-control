@@ -986,11 +986,11 @@
                         <div class="equipment-name">ERV</div>
                         <div class="equipment-status-text">ON</div>
                     </div>
-                    <div class="equipment-item on" data-equipment="vent" onclick="toggleEquipment(this, 'supply-fan')">
+                    <div class="equipment-item on" data-equipment="supply_fan" onclick="toggleEquipment(this, 'supply-fan')">
                         <div class="equipment-name">Supply Fan</div>
                         <div class="equipment-status-text">60%</div>
                     </div>
-                    <div class="equipment-item on" data-equipment="vent" onclick="toggleEquipment(this, 'exhaust-fan')">
+                    <div class="equipment-item on" data-equipment="return_fan" onclick="toggleEquipment(this, 'exhaust-fan')">
                         <div class="equipment-name">Exhaust Fan</div>
                         <div class="equipment-status-text">60%</div>
                     </div>
@@ -1639,18 +1639,39 @@
                     if (data.equipment) {
                         console.log('Equipment status:', data.equipment);
                         
-                        const equipMap = {
-                            'dehum': 'dehum',
-                            'hum_solenoid': 'hum_solenoid',
-                            'hum_fan': 'hum_fan',
-                            'erv': 'erv',
-                            'mini_split': 'mini_split',
-                            'supply_fan': 'supply_fan',
-                            'return_fan': 'return_fan'
-                        };
+                        // Clear all equipment states first
+                        document.querySelectorAll('.equipment-item').forEach(item => {
+                            item.classList.remove('on', 'off', 'idle');
+                        });
+                        
+                        // Track humidifier state (combination of solenoid and fan)
+                        let humState = 'off';
                         
                         Object.entries(data.equipment).forEach(([backendName, state]) => {
-                            const frontendName = equipMap[backendName] || backendName;
+                            let frontendName = backendName;
+                            
+                            // Map backend names to frontend data-equipment
+                            if (backendName === 'hum_solenoid' || backendName === 'hum_fan') {
+                                frontendName = 'hum';
+                                // Combine humidifier states - if either is ON, show as ON
+                                if (state === 'ON' && humState !== 'on') {
+                                    humState = 'on';
+                                } else if (state === 'IDLE' && humState === 'off') {
+                                    humState = 'idle';
+                                }
+                            } else if (backendName === 'supply_fan') {
+                                frontendName = 'supply_fan';
+                            } else if (backendName === 'return_fan') {
+                                frontendName = 'return_fan';
+                            } else {
+                                frontendName = backendName; // mini_split, dehum, erv
+                            }
+                            
+                            // Skip individual hum components, handle combined later
+                            if (backendName === 'hum_solenoid' || backendName === 'hum_fan') {
+                                return;
+                            }
+                            
                             const element = document.querySelector(`[data-equipment="${frontendName}"]`);
                             if (element) {
                                 // Remove all state classes first
@@ -1664,6 +1685,17 @@
                                 }
                             }
                         });
+                        
+                        // Handle combined humidifier state
+                        const humElement = document.querySelector('[data-equipment="hum"]');
+                        if (humElement) {
+                            humElement.classList.remove('off', 'on', 'idle');
+                            humElement.classList.add(humState);
+                            const statusText = humElement.querySelector('.equipment-status-text');
+                            if (statusText) {
+                                statusText.textContent = humState.toUpperCase();
+                            }
+                        }
                     }
                 })
                 .catch(error => console.error('Error fetching status:', error));
