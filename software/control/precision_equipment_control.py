@@ -338,8 +338,94 @@ class PrecisionEquipmentController:
                     self.vpd_controller.return_fan_setpoint = 0.0
         except Exception as e:
             logger.debug(f"Could not update VPD controller setpoints: {e}")
+    
+    def update_equipment(self):
+        """Main equipment control update - call this repeatedly"""
+        # Track if process just became active (recovering from emergency stop)
+        current_process_active = self.vpd_controller.process_active
         
-        # Periodically sync hardware state to prevent drift
+        if not current_process_active:
+            logger.debug("Process NOT active - skipping equipment control")
+            self._process_was_inactive = True  # Remember we were inactive
+            self._first_active_cycle = True
+            # Equipment stays in current state (should be OFF after emergency stop)
+            return
+        
+        # Detect transition from inactive to active (recovery from emergency stop)
+        if self._process_was_inactive and current_process_active:
+            logger.critical("🔄 PROCESS REACTIVATED - Recovering from emergency stop")
+            self._process_was_inactive = False
+        
+        logger.info(f"Process ACTIVE (phase: {self.vpd_controller.current_phase.value}) - Running equipment control")
+        
+        # Get current conditions from VPD controller - USE SUPPLY AIR FOR CONTROL
+        try:
+            supply_temp, supply_humidity, supply_dew_point, supply_vpd = \
+                self.vpd_controller.get_supply_air_conditions()
+            logger.info(f"Supply air conditions: T={supply_temp:.1f}°F, RH={supply_humidity:.1f}%, DP={supply_dew_point:.1f}°F, VPD={supply_vpd:.2f} kPa")
+        except Exception as e:
+            logger.warning(f"Supply air sensor data not available: {e} - falling back to dry room conditions")
+            try:
+                supply_temp, supply_humidity, supply_dew_point, supply_vpd = \
+                    self.vpd_controller.get_dry_room_conditions()
+                logger.info(f"Using dry room conditions as fallback: T={supply_temp:.1f}°F, RH={supply_humidity:.1f}%, DP={supply_dew_point:.1f}°F, VPD={supply_vpd:.2f} kPa")
+            except Exception as e2:
+                logger.error(f"Dry room sensor data also not available: {e2} - cannot control equipment")
+                return
+        
+        # Get current phase and target setpoint
+        try:
+            phase = self.vpd_controller.current_phase.value
+            setpoint = self.vpd_controller.phase_setpoints[self.vpd_controller.current_phase]
+            logger.info(f"Phase: {phase}, Target VPD: {setpoint.vpd_min:.2f}-{setpoint.vpd_max:.2f} kPa, Target DP: {setpoint.dew_point_target:.1f}°F")
+        except Exception as e:
+            logger.error(f"Failed to get phase setpoint: {e}")
+            return
+        
+        # Calculate what equipment states should be based on automatic control
+        auto_states = self.calculate_automatic_control(
+            supply_vpd, setpoint.vpd_min, setpoint.vpd_max,
+            supply_dew_point, setpoint.dew_point_target,
+            supply_humidity, phase
+        )
+        
+        logger.info(f"Calculated auto states: {auto_states}")
+        
+        # CRITICAL FIX: Force apply ALL states on first cycle after process restart
+        if self._first_active_cycle:
+            logger.critical("⚡ FIRST ACTIVE CYCLE - FORCE APPLYING ALL STATES ⚡")
+            self._first_active_cycle = False
+            
+            # Update actual_states to the calculated auto_states
+            for equipment, mode in self.control_modes.items():
+                if mode == ControlMode.AUTO and equipment in auto_states:
+                    self.actual_states[equipment] = auto_states[equipment]
+                elif mode == ControlMode.ON:
+                    self.actual_states[equipment] = 'ON'
+                elif mode == ControlMode.OFF:
+                    self.actual_states[equipment] = 'OFF'
+            
+            # Force apply all states to GPIO
+            force_result = self.force_apply_states()
+            
+            if not force_result:
+                logger.warning("Force apply failed - attempting hardware state sync")
+                sync_result = self.sync_hardware_state()
+                if sync_result:
+                    logger.info("Hardware state synced successfully")
+                else:
+                    logger.error("Hardware sync also failed - equipment state unknown")
+            
+            # Update VPD controller states
+            from software.control.vpd_controller import EquipmentState
+            for equipment, state in self.actual_states.items():
+                self.vpd_controller.equipment_states[equipment] = \
+                    EquipmentState.ON if state == 'ON' else EquipmentState.OFF
+            
+            logger.critical(f"✅ FORCE APPLY COMPLETE. Equipment states: {self.actual_states}")
+            return
+        
+        # Periodic hardware state sync to prevent drift
         current_time = time.time()
         if current_time - self._last_hardware_sync > self._hardware_sync_interval:
             logger.info("Performing periodic hardware state sync")
@@ -347,21 +433,180 @@ class PrecisionEquipmentController:
             self._last_hardware_sync = current_time
         
         # Apply states based on control mode (AUTO, ON, OFF)
-        force_result = self.force_apply_states()
+        for equipment, mode in self.control_modes.items():
+            if mode == ControlMode.AUTO:
+                # Use automatic control
+                if equipment in auto_states:
+                    new_state = auto_states[equipment]
+                    if self.actual_states[equipment] != new_state:
+                        logger.info(f"Changing {equipment}: {self.actual_states[equipment]} → {new_state} (AUTO mode)")
+                        # Only update actual_states if hardware control succeeds
+                        if self._apply_state(equipment, new_state):
+                            self.actual_states[equipment] = new_state
+                            logger.info(f"✅ {equipment} state updated to {new_state}")
+                        else:
+                            logger.error(f"❌ Failed to apply {equipment} = {new_state} - keeping current state")
+            
+            elif mode == ControlMode.ON:
+                # Manual ON override
+                if self.actual_states[equipment] != 'ON':
+                    logger.info(f"Forcing {equipment} ON (manual override)")
+                    if self._apply_state(equipment, 'ON'):
+                        self.actual_states[equipment] = 'ON'
+                        logger.info(f"✅ {equipment} forced ON")
+                    else:
+                        logger.error(f"❌ Failed to force {equipment} ON")
+            
+            elif mode == ControlMode.OFF:
+                # Manual OFF override
+                if self.actual_states[equipment] != 'OFF':
+                    logger.info(f"Forcing {equipment} OFF (manual override)")
+                    if self._apply_state(equipment, 'OFF'):
+                        self.actual_states[equipment] = 'OFF'
+                        logger.info(f"✅ {equipment} forced OFF")
+                    else:
+                        logger.error(f"❌ Failed to force {equipment} OFF")
         
-        if not force_result:
-            logger.warning("Force apply failed - attempting hardware state sync")
-            sync_result = self.sync_hardware_state()
-            if sync_result:
-                logger.info("Hardware state synced successfully")
-            else:
-                logger.error("Hardware sync also failed - equipment state unknown")
-        
-        # Update VPD controller states
+        # Update VPD controller equipment states for display/status
         from software.control.vpd_controller import EquipmentState
         for equipment, state in self.actual_states.items():
             self.vpd_controller.equipment_states[equipment] = \
                 EquipmentState.ON if state == 'ON' else EquipmentState.OFF
+    
+    def calculate_automatic_control(self, current_vpd, target_vpd_min, target_vpd_max, 
+                                   current_dew_point, target_dew_point, current_humidity, phase):
+        """Calculate automatic equipment states based on current conditions"""
+        new_states = {
+            'dehum': 'OFF',
+            'hum_solenoid': 'OFF', 
+            'hum_fan': 'OFF',
+            'erv': 'OFF',
+            'supply_fan': 'ON',  # Always ON during active phases
+            'return_fan': 'ON',  # Always ON during active phases
+            'mini_split': 'ON'   # Always ON for temperature control
+        }
         
-        logger.critical(f"✅ FORCE APPLY COMPLETE. Equipment states: {self.actual_states}")
-        return
+        # Handle different phases
+        if phase == 'storage':
+            # STORAGE MODE: Monitor humidity, cycle equipment
+            if current_humidity > 65:  # Too humid
+                new_states['dehum'] = 'ON'
+                new_states['hum_solenoid'] = 'OFF'
+                logger.info(f"STORAGE: Dehumidifier ON (RH {current_humidity:.1f}% > 65%)")
+            elif current_humidity < 55:  # Too dry
+                new_states['hum_solenoid'] = 'ON'
+                new_states['hum_fan'] = 'ON'
+                new_states['dehum'] = 'OFF'
+                logger.info(f"STORAGE: Humidifier ON (RH {current_humidity:.1f}% < 55%)")
+            else:
+                # Humidity OK - everything off
+                new_states['dehum'] = 'OFF'
+                new_states['hum_solenoid'] = 'OFF'
+                new_states['hum_fan'] = 'OFF'
+                logger.info(f"STORAGE: Humidity OK (RH {current_humidity:.1f}% in 55-65%)")
+            
+            # Mini-split stays on for temperature, fans stay on for circulation
+            return new_states
+        
+        # ACTIVE DRYING/CURING PHASES
+        
+        # Calculate VPD target midpoint and error
+        vpd_target = (target_vpd_min + target_vpd_max) / 2
+        vpd_error = current_vpd - vpd_target
+        
+        # Calculate dew point error
+        dew_error = current_dew_point - target_dew_point
+        
+        logger.info(f"Control errors: VPD_error={vpd_error:.3f} kPa, DP_error={dew_error:.2f}°F")
+        
+        # PRIMARY CONTROL: VPD-BASED
+        
+        # VPD too HIGH (too dry) - Need to add moisture
+        if current_vpd > (target_vpd_max + self.vpd_deadband):
+            logger.info(f"VPD HIGH ({current_vpd:.2f} > {target_vpd_max:.2f}) - HUMIDIFYING")
+            
+            # Turn OFF dehumidifier (with minimum off time)
+            current_time = time.time()
+            if self.dehum_off_start is None:
+                self.dehum_off_start = current_time
+                new_states['dehum'] = 'OFF'
+                logger.info("Dehumidifier turned OFF - starting minimum off timer")
+            elif (current_time - self.dehum_off_start) < self.dehum_min_off_time:
+                new_states['dehum'] = 'OFF'
+                remaining = self.dehum_min_off_time - (current_time - self.dehum_off_start)
+                logger.info(f"Dehumidifier OFF - {remaining:.0f}s remaining in minimum off time")
+            else:
+                # Minimum off time elapsed - can turn back on if needed
+                if current_vpd < target_vpd_max:
+                    new_states['dehum'] = 'ON'
+                    self.dehum_off_start = None
+                    logger.info("Minimum off time complete - dehumidifier can turn ON if needed")
+                else:
+                    new_states['dehum'] = 'OFF'
+            
+            # Calculate humidifier modulation based on VPD error
+            vpd_overshoot = current_vpd - target_vpd_max
+            # Scale modulation: 0.1 kPa error = 50% duty, 0.2 kPa = 100%
+            self.hum_modulation_rate = min(100.0, (vpd_overshoot / 0.2) * 100.0)
+            modulated_state = self._apply_modulation()
+            
+            new_states['hum_solenoid'] = modulated_state
+            new_states['hum_fan'] = 'ON'  # Fan always ON when humidifying
+            
+            logger.info(f"Humidifier modulation: {self.hum_modulation_rate:.1f}% duty cycle, state={modulated_state}")
+        
+        # VPD too LOW (too wet) - Need to remove moisture  
+        elif current_vpd < (target_vpd_min - self.vpd_deadband):
+            logger.info(f"VPD LOW ({current_vpd:.2f} < {target_vpd_min:.2f}) - DEHUMIDIFYING")
+            
+            # Dehumidifier ON
+            new_states['dehum'] = 'ON'
+            self.dehum_off_start = None  # Reset timer
+            
+            # Humidifier OFF
+            new_states['hum_solenoid'] = 'OFF'
+            new_states['hum_fan'] = 'OFF'
+            self.hum_modulation_rate = 0.0
+            
+            logger.info("Dehumidifier ON, Humidifier OFF")
+        
+        # VPD in range - MAINTAIN
+        else:
+            logger.info(f"VPD OK ({current_vpd:.2f} in range {target_vpd_min:.2f}-{target_vpd_max:.2f}) - MAINTAINING")
+            
+            # Fine-tune based on dew point to stay centered in range
+            if dew_error > self.dew_point_deadband:
+                # Dew point too high - light dehumidification
+                new_states['dehum'] = 'ON'
+                new_states['hum_solenoid'] = 'OFF'
+                new_states['hum_fan'] = 'OFF'
+                logger.info(f"Dew point high ({current_dew_point:.1f}°F > {target_dew_point:.1f}°F) - light dehum")
+            
+            elif dew_error < -self.dew_point_deadband:
+                # Dew point too low - light humidification
+                new_states['dehum'] = 'OFF'
+                self.hum_modulation_rate = 25.0  # Low duty cycle for maintenance
+                new_states['hum_solenoid'] = self._apply_modulation()
+                new_states['hum_fan'] = 'ON' if new_states['hum_solenoid'] == 'ON' else 'OFF'
+                logger.info(f"Dew point low ({current_dew_point:.1f}°F < {target_dew_point:.1f}°F) - light humidification")
+            
+            else:
+                # Perfect conditions - minimal intervention
+                new_states['dehum'] = 'ON'  # Keep on for stability (your primary control)
+                new_states['hum_solenoid'] = 'OFF'
+                new_states['hum_fan'] = 'OFF'
+                self.hum_modulation_rate = 0.0
+                logger.info("Conditions optimal - minimal intervention")
+        
+        return new_states
+    
+    def _apply_modulation(self):
+        """Apply duty cycle modulation to humidifier"""
+        if self.hum_modulation_rate >= 100.0:
+            return 'ON'
+        elif self.hum_modulation_rate <= 0.0:
+            return 'OFF'
+        else:
+            # Simple duty cycle - could be improved with PWM
+            # For now, just threshold at 50%
+            return 'ON' if self.hum_modulation_rate >= 50.0 else 'OFF'

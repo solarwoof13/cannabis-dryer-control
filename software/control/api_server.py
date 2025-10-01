@@ -162,13 +162,15 @@ def get_status():
         # Check for emergency state first
         state_manager = StateManager()
         saved_state = state_manager.load_state()
+        
+        # Always define phase_value for later use
+        phase_value = current_phase.value if hasattr(current_phase, 'value') else str(current_phase)
+        
         if saved_state.get('emergency_stop', False):
             system_state = 'emergency'
             cycle_state = 'emergency'
         else:
             # Map phase to frontend states
-            phase_value = current_phase.value if hasattr(current_phase, 'value') else str(current_phase)
-            
             if phase_value == 'idle':
                 system_state = 'idle'
                 cycle_state = 'idle'

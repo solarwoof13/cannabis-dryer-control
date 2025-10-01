@@ -139,8 +139,12 @@ def main():
                             )
                 
                 # Now update equipment using your precise control logic
-                equipment_controller.update_equipment()
-                logger.info(f"Equipment states: {equipment_controller.actual_states}")
+                try:
+                    equipment_controller.update_equipment()
+                    logger.info(f"Equipment states: {equipment_controller.actual_states}")
+                except Exception as e:
+                    logger.error(f"Equipment control failed: {e}")
+                    # Continue running - don't crash the main loop
                 
                 # Save state for power recovery
                 try:
