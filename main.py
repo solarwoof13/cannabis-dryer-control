@@ -181,9 +181,9 @@ def main():
     start_background_tasks()
     
     print("------------------------------------------------------------")
-    print("Starting web interface on http://localhost:5000")
+    print("Starting web interface on http://localhost:5001")
     if is_pi:
-        print("Access from network: http://<pi-ip-address>:5000")
+        print("Access from network: http://<pi-ip-address>:5001")
     print("Open your browser to see the dashboard")
     print("Press Ctrl+C to stop the system")
     print("------------------------------------------------------------")
@@ -192,11 +192,11 @@ def main():
     try:
         if is_pi:
             # On Raspberry Pi - production mode
-            logger.info("Starting production web server on port 5000")
+            logger.info("Starting production web server on port 5001")
             socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
         else:
             # On development machine
-            logger.info("Starting development web server on port 5000")
+            logger.info("Starting development web server on port 5001")
             socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
     except Exception as e:
         logger.error(f"Failed to start web server: {e}")

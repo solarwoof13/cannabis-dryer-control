@@ -108,40 +108,42 @@ def get_status():
             humidity_min = phase_settings.humidity_min
             humidity_max = phase_settings.humidity_max
         
-        # Get current VPD and sensor averages
-        current_vpd = 0.75
-        avg_temp = 68.0
-        avg_humidity = 60.0
+        # Get current VPD and sensor averages - use supply air conditions only
+        current_vpd = None  # Don't default to fake value
+        avg_temp = None
+        avg_humidity = None
         
-        # Try different methods to get sensor data
-        if hasattr(controller, 'get_dry_room_conditions'):
+        # Use supply air conditions only for VPD calculation
+        if hasattr(controller, 'get_supply_air_conditions'):
             try:
-                avg_temp, avg_humidity, avg_dew_point, current_vpd = controller.get_dry_room_conditions()
-            except ValueError as e:
-                # Sensor failure - don't use fake data
-                logger.error(f"Sensor failure: {e}")
-                # Continue to try the fallback methods below
-                if hasattr(controller, 'sensor_readings') and controller.sensor_readings:
-                    # Direct access to sensor readings (your existing elif code)
-                    readings = controller.sensor_readings
-                    if len(readings) > 0:
-                        vpd_values = [r.vpd_kpa for sensor_name, r in readings.items() if hasattr(r, 'vpd_kpa') and r.vpd_kpa > 0]
-                        temp_values = [r.temperature for sensor_name, r in readings.items() if hasattr(r, 'temperature')]
-                        humidity_values = [r.humidity for sensor_name, r in readings.items() if hasattr(r, 'humidity')]
-                        
-                        if vpd_values:
-                            current_vpd = sum(vpd_values) / len(vpd_values)
-                        if temp_values:
-                            avg_temp = sum(temp_values) / len(temp_values)
-                        if humidity_values:
-                            avg_humidity = sum(humidity_values) / len(humidity_values)
-        elif hasattr(controller, 'last_vpd'):
-            # Use cached values
+                supply_temp, supply_humidity, supply_dew_point, supply_vpd = controller.get_supply_air_conditions()
+                if supply_vpd is not None and supply_temp is not None and supply_humidity is not None:
+                    current_vpd = supply_vpd
+                    avg_temp = supply_temp
+                    avg_humidity = supply_humidity
+                    logger.info(f"Using supply air conditions: VPD={current_vpd:.3f}, T={avg_temp:.1f}°F, RH={avg_humidity:.1f}%")
+                else:
+                    logger.warning("Supply air conditions returned None values")
+            except Exception as e:
+                logger.warning(f"Supply air sensors not available: {e}")
+        
+        # If supply air data is not available, try cached values as fallback
+        if current_vpd is None and hasattr(controller, 'last_vpd') and controller.last_vpd is not None:
             current_vpd = controller.last_vpd
-            if hasattr(controller, 'last_temp'):
+            if hasattr(controller, 'last_temp') and controller.last_temp is not None:
                 avg_temp = controller.last_temp
-            if hasattr(controller, 'last_humidity'):
+            if hasattr(controller, 'last_humidity') and controller.last_humidity is not None:
                 avg_humidity = controller.last_humidity
+            logger.info(f"Using cached values: VPD={current_vpd:.3f}")
+        
+        # Final fallback - use reasonable defaults only if nothing else available
+        if current_vpd is None:
+            current_vpd = 0.75  # Last resort default
+            logger.warning("No VPD data available, using default 0.75 kPa")
+        if avg_temp is None:
+            avg_temp = 68.0
+        if avg_humidity is None:
+            avg_humidity = 60.0
         
         # Determine process state
         process_active = False
@@ -249,7 +251,8 @@ def get_status():
                 'gpio_initialized': getattr(equipment_controller, 'gpio_initialized', False),
                 'process_active': getattr(equipment_controller.vpd_controller, 'process_active', False) if hasattr(equipment_controller, 'vpd_controller') else False,
                 'current_phase': getattr(equipment_controller.vpd_controller, 'current_phase', None).value if hasattr(equipment_controller, 'vpd_controller') and hasattr(equipment_controller.vpd_controller, 'current_phase') and equipment_controller.vpd_controller.current_phase else None,
-                'control_modes': getattr(equipment_controller, 'control_modes', {}),
+                'control_modes': {k: v.value if hasattr(v, 'value') else str(v) 
+                                for k, v in getattr(equipment_controller, 'control_modes', {}).items()},
             }
         
         # Try to get supply air conditions for monitoring
