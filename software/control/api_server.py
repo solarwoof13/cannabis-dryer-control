@@ -212,6 +212,18 @@ def get_status():
                         for k, v in controller.equipment_states.items()}
             logger.info(f"DEBUG: Using controller.equipment_states = {equipment}")
         
+        # Try to get supply air conditions for monitoring
+        supply_temp = None
+        supply_humidity = None
+        supply_vpd = None
+        supply_dew_point = None
+        
+        try:
+            if hasattr(controller, 'get_supply_air_conditions'):
+                supply_temp, supply_humidity, supply_dew_point, supply_vpd = controller.get_supply_air_conditions()
+        except Exception as e:
+            logger.debug(f"Supply air data not available: {e}")
+        
         status.update({
             'phase': phase_value,  # ADDED for frontend
             'system_state': system_state,  # ADDED for frontend
@@ -232,6 +244,10 @@ def get_status():
             'humidity_max': float(humidity_max),
             'process_active': process_active,
             'equipment': equipment,  # ADDED
+            'supply_temp': float(supply_temp) if supply_temp is not None else None,
+            'supply_humidity': float(supply_humidity) if supply_humidity is not None else None,
+            'supply_vpd': float(supply_vpd) if supply_vpd is not None else None,
+            'supply_dew_point': float(supply_dew_point) if supply_dew_point is not None else None,
             'timestamp': datetime.now().isoformat()
         })
         

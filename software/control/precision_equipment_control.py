@@ -460,14 +460,14 @@ class PrecisionEquipmentController:
         
         logger.info(f"Process ACTIVE (phase: {self.vpd_controller.current_phase.value}) - Running equipment control")
         
-        # Get current conditions from VPD controller
+        # Get current conditions from VPD controller - USE SUPPLY AIR FOR CONTROL
         try:
-            avg_temp, avg_humidity, avg_dew_point, avg_vpd = \
-                self.vpd_controller.get_dry_room_conditions()
-            logger.info(f"Current conditions: T={avg_temp:.1f}°F, RH={avg_humidity:.1f}%, DP={avg_dew_point:.1f}°F, VPD={avg_vpd:.2f} kPa")
+            supply_temp, supply_humidity, supply_dew_point, supply_vpd = \
+                self.vpd_controller.get_supply_air_conditions()
+            logger.info(f"Supply air conditions: T={supply_temp:.1f}°F, RH={supply_humidity:.1f}%, DP={supply_dew_point:.1f}°F, VPD={supply_vpd:.2f} kPa")
         except Exception as e:
-            logger.error(f"Failed to get sensor data: {e}")
-            logger.error("Cannot control equipment without sensor data - maintaining current state")
+            logger.error(f"Failed to get supply air sensor data: {e}")
+            logger.error("Cannot control equipment without supply air sensor data - maintaining current state")
             return
         
         # Get current phase and target setpoint
@@ -481,9 +481,9 @@ class PrecisionEquipmentController:
         
         # Calculate what equipment states should be based on automatic control
         auto_states = self.calculate_automatic_control(
-            avg_vpd, setpoint.vpd_min, setpoint.vpd_max,
-            avg_dew_point, setpoint.dew_point_target,
-            avg_humidity, phase
+            supply_vpd, setpoint.vpd_min, setpoint.vpd_max,
+            supply_dew_point, setpoint.dew_point_target,
+            supply_humidity, phase
         )
         
         logger.info(f"Calculated auto states: {auto_states}")

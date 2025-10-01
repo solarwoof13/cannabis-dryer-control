@@ -266,6 +266,32 @@ class PrecisionVPDController:
         
         return avg_temp, avg_humidity, avg_dew_point, avg_vpd
     
+    def get_supply_air_conditions(self) -> Tuple[float, float, float, float]:
+        """Get conditions from supply air duct sensor (what enters the drying room)"""
+        supply_reading = self.sensor_readings.get('supply_duct')
+        
+        if supply_reading is None:
+            raise ValueError("No supply duct sensor data available")
+            
+        # Check what type the reading actually is
+        if isinstance(supply_reading, str):
+            logger.error(f"Supply duct sensor contains string instead of SensorReading object: {supply_reading}")
+            raise ValueError("Invalid supply duct sensor data")
+            
+        # Check if it has the required attributes
+        if not hasattr(supply_reading, 'temperature') or not hasattr(supply_reading, 'humidity'):
+            logger.error("Supply duct sensor missing temperature or humidity attributes")
+            raise ValueError("Incomplete supply duct sensor data")
+        
+        temp = supply_reading.temperature
+        humidity = supply_reading.humidity
+        dew_point = supply_reading.dew_point if hasattr(supply_reading, 'dew_point') else 0
+        vpd = supply_reading.vpd_kpa if hasattr(supply_reading, 'vpd_kpa') else 0
+        
+        logger.debug(f"Supply air conditions: T={temp:.1f}°F, RH={humidity:.1f}%, DP={dew_point:.1f}°F, VPD={vpd:.2f} kPa")
+        
+        return temp, humidity, dew_point, vpd
+    
     def check_phase_transition(self):
         """Check if it's time to transition to next phase"""
         current_setpoint = self.phase_setpoints[self.current_phase]
