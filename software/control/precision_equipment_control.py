@@ -10,6 +10,14 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, Tuple
 
+# IMPORT GPIO AT MODULE LEVEL - CRITICAL!
+try:
+    import RPi.GPIO as GPIO
+    GPIO_AVAILABLE = True
+except ImportError:
+    GPIO_AVAILABLE = False
+    print("WARNING: RPi.GPIO not available - running in simulation mode")
+
 logger = logging.getLogger(__name__)
 
 class ControlMode(Enum):
@@ -33,7 +41,9 @@ class PrecisionEquipmentController:
         # Initialize GPIO FIRST
         self.gpio_initialized = False
         try:
-            import RPi.GPIO as GPIO
+            if not GPIO_AVAILABLE:
+                raise ImportError("GPIO not available")
+            
             GPIO.setmode(GPIO.BCM)
             GPIO.setwarnings(False)
             
@@ -143,31 +153,38 @@ class PrecisionEquipmentController:
 
     def _apply_state(self, equipment: str, state: str):
         """Apply state to actual GPIO/hardware"""
+        logger.info(f"🔧 _apply_state() called: {equipment} → {state}")
+        
         if not self.gpio_initialized:
-            logger.warning(f"GPIO not initialized - cannot apply {equipment} = {state}")
+            logger.error(f"❌ GPIO not initialized - cannot apply {equipment} = {state}")
             return False
         
         if equipment not in self.gpio_pins:
-            logger.warning(f"Equipment {equipment} not in GPIO pins")
+            logger.debug(f"⚠️  {equipment} not in GPIO pins (OK for mini_split)")
+            return False
+        
+        if not GPIO_AVAILABLE:
+            logger.error("❌ GPIO module not available!")
             return False
         
         try:
-            import RPi.GPIO as GPIO
-            
             pin = self.gpio_pins[equipment]
             
             # Active LOW logic: LOW = ON, HIGH = OFF
             if state == 'ON':
+                logger.info(f"⚡ Setting GPIO {pin} = LOW for {equipment} ON")
                 GPIO.output(pin, GPIO.LOW)
-                logger.info(f"{equipment} = ON (GPIO {pin} = LOW)")
-            else:  # OFF or any other state
+                logger.info(f"✅ {equipment} = ON (GPIO {pin} = LOW)")
+            else:
+                logger.info(f"⚡ Setting GPIO {pin} = HIGH for {equipment} OFF")
                 GPIO.output(pin, GPIO.HIGH)
-                logger.info(f"{equipment} = OFF (GPIO {pin} = HIGH)")
+                logger.info(f"✅ {equipment} = OFF (GPIO {pin} = HIGH)")
             
             return True
             
         except Exception as e:
-            logger.error(f"Error applying state for {equipment}: {e}")
+            logger.error(f"❌ ERROR applying state for {equipment}: {e}")
+            logger.exception("Full traceback:")
             return False
 
     # OPTIONAL: Add a cleanup method for safe shutdown
