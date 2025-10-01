@@ -638,6 +638,7 @@ def start_process():
         
         data = request.get_json() or {}
         resume_from_emergency = data.get('resume_from_emergency', False)
+        resume_from_hold = data.get('resume_from_hold', False)
         
         if resume_from_emergency and hasattr(controller, 'process_start_time') and controller.process_start_time:
             # Resume existing process from emergency
@@ -648,6 +649,17 @@ def start_process():
             return jsonify({
                 'success': True,
                 'message': 'Process resumed from emergency',
+                'phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase)
+            })
+        elif resume_from_hold and hasattr(controller, 'process_start_time') and controller.process_start_time:
+            # Resume existing process from hold
+            controller.process_active = True
+            # Keep existing phase and times
+            logger.info(f"Process RESUMED from hold - Phase: {controller.current_phase}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Process resumed from hold',
                 'phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase)
             })
         else:

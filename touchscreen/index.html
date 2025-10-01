@@ -1896,6 +1896,28 @@
                                 alert('Failed to resume. Check system status.');
                             });
                         }
+                    } else if (cycleState === 'holding') {
+                        // Resume from hold mode
+                        if (confirm('Resume normal drying process from hold mode?')) {
+                            fetch('/api/process/start', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({ resume_from_hold: true })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Resumed from hold:', data);
+                                cycleState = 'running';
+                                systemState = 'running';
+                                updateButtonStates();
+                                updateSystemModeDisplay();
+                                updateFromController();
+                            })
+                            .catch(err => {
+                                console.error('Failed to resume from hold:', err);
+                                alert('Failed to resume. Check system status.');
+                            });
+                        }
                     } else {
                         alert('Process is already running!');
                     }
