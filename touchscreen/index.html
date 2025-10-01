@@ -1113,14 +1113,17 @@
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
-                    // Sync cycle state from backend
-                    if (data.cycle_state) {
-                        cycleState = data.cycle_state;
-                    } else if (data.system_state) {
-                        cycleState = data.system_state;
+                    // DON'T overwrite emergency state from backend until user takes action
+                    if (cycleState !== 'emergency') {
+                        // Only update state if not in emergency mode
+                        if (data.cycle_state) {
+                            cycleState = data.cycle_state;
+                        } else if (data.system_state) {
+                            cycleState = data.system_state;
+                        }
+                        systemState = data.system_state || 'idle';
                     }
                     
-                    systemState = data.system_state || 'idle';
                     currentPhase = data.phase || 'idle';
                     dryingProgress = data.drying_progress || 0;
                     curingProgress = data.curing_progress || 0;
@@ -1133,8 +1136,10 @@
                 })
                 .catch(error => {
                     console.log('Waiting for backend...', error);
-                    cycleState = 'idle';
-                    systemState = 'idle';
+                    if (cycleState !== 'emergency') {
+                        cycleState = 'idle';
+                        systemState = 'idle';
+                    }
                     updateButtonStates();
                     updateSystemModeDisplay();
                 });
@@ -1384,27 +1389,35 @@
             if (confirm('EMERGENCY STOP\n\nThis will immediately stop ALL equipment.\nAre you sure?')) {
                 console.log('Emergency stop activated');
                 
+                // Set state FIRST before any async calls
+                cycleState = 'emergency';
+                systemState = 'emergency';
+                
+                // Update UI immediately
+                updateButtonStates();
+                
+                // Update all equipment display to OFF
+                document.querySelectorAll('.equipment-item').forEach(item => {
+                    item.classList.remove('on', 'idle');
+                    item.classList.add('off');
+                    const statusText = item.querySelector('.equipment-status-text');
+                    if (statusText) statusText.textContent = 'OFF';
+                });
+                
+                // THEN call backend
                 fetch('/api/emergency-stop', { 
                     method: 'POST' 
                 })
                 .then(response => response.json())
                 .then(data => {
                     console.log('Emergency stop response:', data);
-                    
-                    // Update all equipment display to OFF
-                    document.querySelectorAll('.equipment-item').forEach(item => {
-                        item.classList.remove('on', 'idle');
-                        item.classList.add('off');
-                        const statusText = item.querySelector('.equipment-status-text');
-                        if (statusText) statusText.textContent = 'OFF';
-                    });
-                    
-                    // Update state to emergency
-                    cycleState = 'emergency';
-                    updateButtonStates();
-                    updateDashboard();
+                    // Don't call updateDashboard here - it might overwrite our state
+                    // The periodic update will refresh in 2 seconds anyway
                 })
-                .catch(err => console.error('Emergency stop API error:', err));
+                .catch(err => {
+                    console.error('Emergency stop API error:', err);
+                    // On error, still keep emergency state locally
+                });
             }
         }
 
