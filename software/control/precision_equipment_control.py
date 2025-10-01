@@ -415,11 +415,6 @@ class PrecisionEquipmentController:
         
         return 'ON' if self.hum_is_on_cycle else 'OFF'
 
-    def _apply_state(self, equipment: str, state: str):
-        """Apply state to actual GPIO/hardware"""
-        if hasattr(self.vpd_controller, 'gpio_controller'):
-            self.vpd_controller.gpio_controller.set_device(equipment, state)
-
     def update_equipment(self):
         """Main update function called from control loop"""
         
