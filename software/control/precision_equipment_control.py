@@ -211,7 +211,7 @@ class PrecisionEquipmentController:
             logger.error(f"❌ ERROR applying state for {equipment}: {e}")
             logger.exception("Full traceback:")
             return False
-
+    
     # OPTIONAL: Add a cleanup method for safe shutdown
     def cleanup(self):
         """Clean up GPIO on shutdown - turn everything OFF"""
