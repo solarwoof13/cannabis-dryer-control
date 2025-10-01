@@ -380,51 +380,81 @@ class PrecisionEquipmentController:
 
     def update_equipment(self):
         """Main update function called from control loop"""
-        # Get current conditions
+        
+        # CRITICAL: Check if process is active before controlling equipment
+        if not hasattr(self.vpd_controller, 'process_active'):
+            logger.warning("VPD controller has no process_active attribute")
+            return
+        
+        if not self.vpd_controller.process_active:
+            logger.debug("Process NOT active - skipping equipment control")
+            # Equipment stays in current state (should be OFF after emergency stop)
+            return
+        
+        logger.info(f"Process ACTIVE (phase: {self.vpd_controller.current_phase.value}) - Running equipment control")
+        
+        # Get current conditions from VPD controller
         try:
             avg_temp, avg_humidity, avg_dew_point, avg_vpd = \
                 self.vpd_controller.get_dry_room_conditions()
-        except:
-            logger.error("No sensor data available")
+            logger.info(f"Current conditions: T={avg_temp:.1f}°F, RH={avg_humidity:.1f}%, DP={avg_dew_point:.1f}°F, VPD={avg_vpd:.2f} kPa")
+        except Exception as e:
+            logger.error(f"Failed to get sensor data: {e}")
+            logger.error("Cannot control equipment without sensor data - maintaining current state")
             return
         
-        # Get current phase and targets
-        phase = self.vpd_controller.current_phase.value
-        setpoint = self.vpd_controller.phase_setpoints[self.vpd_controller.current_phase]
+        # Get current phase and target setpoint
+        try:
+            phase = self.vpd_controller.current_phase.value
+            setpoint = self.vpd_controller.phase_setpoints[self.vpd_controller.current_phase]
+            logger.info(f"Phase: {phase}, Target VPD: {setpoint.vpd_min:.2f}-{setpoint.vpd_max:.2f} kPa, Target DP: {setpoint.dew_point_target:.1f}°F")
+        except Exception as e:
+            logger.error(f"Failed to get phase setpoint: {e}")
+            return
         
-        # Calculate automatic control for AUTO mode equipment
+        # Calculate what equipment states should be based on automatic control
         auto_states = self.calculate_automatic_control(
             avg_vpd, setpoint.vpd_min, setpoint.vpd_max,
             avg_dew_point, setpoint.dew_point_target,
             avg_humidity, phase
         )
         
-        # Apply states based on control mode
+        logger.info(f"Calculated auto states: {auto_states}")
+        
+        # Apply states based on control mode (AUTO, ON, OFF)
         for equipment, mode in self.control_modes.items():
             if mode == ControlMode.AUTO:
                 # Use automatic control
                 if equipment in auto_states:
                     new_state = auto_states[equipment]
                     if self.actual_states[equipment] != new_state:
+                        logger.info(f"Changing {equipment}: {self.actual_states[equipment]} → {new_state} (AUTO mode)")
                         self.actual_states[equipment] = new_state
                         self._apply_state(equipment, new_state)
-                        logger.info(f"{equipment}: {new_state} (AUTO mode)")
+                    else:
+                        logger.debug(f"{equipment}: {new_state} (no change, AUTO mode)")
+            
             elif mode == ControlMode.ON:
-                # Manual ON
+                # Manual ON override
                 if self.actual_states[equipment] != 'ON':
+                    logger.info(f"Forcing {equipment} ON (manual override)")
                     self.actual_states[equipment] = 'ON'
                     self._apply_state(equipment, 'ON')
+            
             elif mode == ControlMode.OFF:
-                # Manual OFF
+                # Manual OFF override
                 if self.actual_states[equipment] != 'OFF':
+                    logger.info(f"Forcing {equipment} OFF (manual override)")
                     self.actual_states[equipment] = 'OFF'
                     self._apply_state(equipment, 'OFF')
         
-        # Update VPD controller equipment states for display
+        # Update VPD controller equipment states for display/status
         from software.control.vpd_controller import EquipmentState
         for equipment, state in self.actual_states.items():
             self.vpd_controller.equipment_states[equipment] = \
                 EquipmentState.ON if state == 'ON' else EquipmentState.OFF
+        
+        logger.info(f"✅ Equipment update complete. Final states: {self.actual_states}")
 
     def get_status(self) -> Dict:
         """Get current equipment status including modes and states"""
