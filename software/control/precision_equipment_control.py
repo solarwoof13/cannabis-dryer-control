@@ -108,6 +108,9 @@ class PrecisionEquipmentController:
         # VPD and Dew Point deadbands
         self.vpd_deadband = 0.05  # kPa
         self.dew_point_deadband = 0.5  # °F
+        # Track if we need to force-apply states after emergency stop recovery
+        self._process_was_inactive = True  # Start as True to force apply on first run
+        self._first_active_cycle = True
 
         # Apply initial states to GPIO hardware
         if self.gpio_initialized:
@@ -150,6 +153,28 @@ class PrecisionEquipmentController:
         except Exception as e:
             logger.error(f"Error during emergency stop: {e}")
             return False
+        
+    def force_apply_states(self):
+        """Force-apply all current actual_states to GPIO hardware.
+        Used after emergency stop recovery to ensure relays match software state."""
+        logger.warning("🔄 FORCE APPLYING ALL EQUIPMENT STATES (Post-Emergency Recovery)")
+        
+        if not self.gpio_initialized:
+            logger.error("Cannot force apply - GPIO not initialized")
+            return False
+        
+        success_count = 0
+        for equipment, state in self.actual_states.items():
+            if equipment in self.gpio_pins:
+                result = self._apply_state(equipment, state)
+                if result:
+                    success_count += 1
+                    logger.info(f"✅ Force applied: {equipment} = {state}")
+                else:
+                    logger.error(f"❌ Failed to force apply: {equipment}")
+        
+        logger.info(f"Force apply complete: {success_count}/{len(self.gpio_pins)} relays applied")
+        return success_count == len(self.gpio_pins)
 
     def _apply_state(self, equipment: str, state: str):
         """Apply state to actual GPIO/hardware"""
@@ -403,10 +428,20 @@ class PrecisionEquipmentController:
             logger.warning("VPD controller has no process_active attribute")
             return
         
-        if not self.vpd_controller.process_active:
+        # Track if process just became active (recovering from emergency stop)
+        current_process_active = self.vpd_controller.process_active
+        
+        if not current_process_active:
             logger.debug("Process NOT active - skipping equipment control")
+            self._process_was_inactive = True  # Remember we were inactive
+            self._first_active_cycle = True
             # Equipment stays in current state (should be OFF after emergency stop)
             return
+        
+        # Detect transition from inactive to active (recovery from emergency stop)
+        if self._process_was_inactive and current_process_active:
+            logger.critical("🔄 PROCESS REACTIVATED - Recovering from emergency stop")
+            self._process_was_inactive = False
         
         logger.info(f"Process ACTIVE (phase: {self.vpd_controller.current_phase.value}) - Running equipment control")
         
@@ -438,6 +473,33 @@ class PrecisionEquipmentController:
         
         logger.info(f"Calculated auto states: {auto_states}")
         
+        # CRITICAL FIX: Force apply ALL states on first cycle after process restart
+        if self._first_active_cycle:
+            logger.critical("⚡ FIRST ACTIVE CYCLE - FORCE APPLYING ALL STATES ⚡")
+            self._first_active_cycle = False
+            
+            # Update actual_states to the calculated auto_states
+            for equipment, mode in self.control_modes.items():
+                if mode == ControlMode.AUTO and equipment in auto_states:
+                    self.actual_states[equipment] = auto_states[equipment]
+                elif mode == ControlMode.ON:
+                    self.actual_states[equipment] = 'ON'
+                elif mode == ControlMode.OFF:
+                    self.actual_states[equipment] = 'OFF'
+            
+            # Force apply all states to GPIO
+            self.force_apply_states()
+            
+            # Update VPD controller states
+            from software.control.vpd_controller import EquipmentState
+            for equipment, state in self.actual_states.items():
+                self.vpd_controller.equipment_states[equipment] = \
+                    EquipmentState.ON if state == 'ON' else EquipmentState.OFF
+            
+            logger.critical(f"✅ FORCE APPLY COMPLETE. Equipment states: {self.actual_states}")
+            return
+        
+
         # Apply states based on control mode (AUTO, ON, OFF)
         for equipment, mode in self.control_modes.items():
             if mode == ControlMode.AUTO:
