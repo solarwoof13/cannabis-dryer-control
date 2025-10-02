@@ -516,6 +516,7 @@ class PrecisionEquipmentController:
         
         # ACTIVE DRYING/CURING PHASES - ERV should be ON for air exchange
         new_states['erv'] = 'ON'  # Enable ERV for air exchange during active drying
+        new_states['hum_fan'] = 'ON'  # Humidifier fan always ON during active phases
         
         # Calculate VPD target midpoint and error
         vpd_target = (target_vpd_min + target_vpd_max) / 2
@@ -572,7 +573,7 @@ class PrecisionEquipmentController:
             
             # Humidifier OFF
             new_states['hum_solenoid'] = 'OFF'
-            new_states['hum_fan'] = 'OFF'
+            # hum_fan stays ON during active phases
             self.hum_modulation_rate = 0.0
             
             logger.info("Dehumidifier ON, Humidifier OFF")
@@ -594,14 +595,14 @@ class PrecisionEquipmentController:
                 new_states['dehum'] = 'OFF'
                 self.hum_modulation_rate = 25.0  # Low duty cycle for maintenance
                 new_states['hum_solenoid'] = self._apply_modulation()
-                new_states['hum_fan'] = 'ON' if new_states['hum_solenoid'] == 'ON' else 'OFF'
+                # hum_fan stays ON during active phases
                 logger.info(f"Dew point low ({current_dew_point:.1f}°F < {target_dew_point:.1f}°F) - light humidification")
             
             else:
                 # Perfect conditions - minimal intervention
                 new_states['dehum'] = 'ON'  # Keep on for stability (your primary control)
                 new_states['hum_solenoid'] = 'OFF'
-                new_states['hum_fan'] = 'OFF'
+                # hum_fan stays ON during active phases
                 self.hum_modulation_rate = 0.0
                 logger.info("Conditions optimal - minimal intervention")
         

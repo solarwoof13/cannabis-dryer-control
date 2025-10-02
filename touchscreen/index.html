@@ -1683,21 +1683,24 @@
                             item.classList.remove('on', 'off', 'idle');
                         });
                         
-                        // Track humidifier state (combination of solenoid
+                        // Track humidifier state (ONLY solenoid, not fan)
                         let humState = 'off';
                         
                         Object.entries(data.equipment).forEach(([backendName, state]) => {
                             let frontendName = backendName;
                             
                             // Map backend names to frontend data-equipment
-                            if (backendName === 'hum_solenoid' || backendName === 'hum_fan') {
+                            if (backendName === 'hum_solenoid') {
                                 frontendName = 'hum';
-                                // Combine humidifier states - if either is ON, show as ON
-                                if (state === 'ON' && humState !== 'on') {
+                                // Humidifier status ONLY based on solenoid
+                                if (state === 'ON') {
                                     humState = 'on';
-                                } else if (state === 'IDLE' && humState === 'off') {
+                                } else if (state === 'IDLE') {
                                     humState = 'idle';
                                 }
+                            } else if (backendName === 'hum_fan') {
+                                // Skip fan - don't use for humidifier display
+                                return;
                             } else if (backendName === 'supply_fan') {
                                 frontendName = 'supply_fan';
                             } else if (backendName === 'return_fan') {
@@ -1706,7 +1709,7 @@
                                 frontendName = backendName; // mini_split, dehum, erv
                             }
                             
-                            // Skip individual hum components, handle combined later
+                            // Skip solenoid (handled above), skip fan
                             if (backendName === 'hum_solenoid' || backendName === 'hum_fan') {
                                 return;
                             }
