@@ -121,6 +121,10 @@ def get_status():
                     current_vpd = supply_vpd
                     avg_temp = supply_temp
                     avg_humidity = supply_humidity
+                    # Cache values for fallback use
+                    controller.last_vpd = supply_vpd
+                    controller.last_temp = supply_temp
+                    controller.last_humidity = supply_humidity
                     logger.info(f"Using supply air conditions: VPD={current_vpd:.3f}, T={avg_temp:.1f}°F, RH={avg_humidity:.1f}%")
                 else:
                     logger.warning("Supply air conditions returned None values")

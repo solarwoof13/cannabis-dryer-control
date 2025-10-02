@@ -361,20 +361,41 @@ class PrecisionEquipmentController:
         
         logger.info(f"Process ACTIVE - Running equipment control")
         
-        # Get current conditions from VPD controller - USE SUPPLY AIR FOR CONTROL
-        try:
-            supply_temp, supply_humidity, supply_dew_point, supply_vpd = \
-                self.vpd_controller.get_supply_air_conditions()
-            logger.info(f"Supply air conditions: T={supply_temp:.1f}°F, RH={supply_humidity:.1f}%, DP={supply_dew_point:.1f}°F, VPD={supply_vpd:.2f} kPa")
-        except Exception as e:
-            logger.warning(f"Supply air sensor data not available: {e} - falling back to dry room conditions")
+        # Get current conditions - USE SAME LOGIC AS API STATUS FOR CONSISTENCY
+        current_vpd = None
+        supply_temp = None
+        supply_humidity = None
+        
+        # Use supply air conditions only, with same fallback logic as API
+        if hasattr(self.vpd_controller, 'get_supply_air_conditions'):
             try:
-                supply_temp, supply_humidity, supply_dew_point, supply_vpd = \
-                    self.vpd_controller.get_dry_room_conditions()
-                logger.info(f"Using dry room conditions as fallback: T={supply_temp:.1f}°F, RH={supply_humidity:.1f}%, DP={supply_dew_point:.1f}°F, VPD={supply_vpd:.2f} kPa")
-            except Exception as e2:
-                logger.error(f"Dry room sensor data also not available: {e2} - cannot control equipment")
-                return
+                supply_temp, supply_humidity, supply_dew_point, supply_vpd = self.vpd_controller.get_supply_air_conditions()
+                if supply_vpd is not None and supply_temp is not None and supply_humidity is not None:
+                    current_vpd = supply_vpd
+                    logger.info(f"Equipment control using supply air: VPD={current_vpd:.3f}, T={supply_temp:.1f}°F, RH={supply_humidity:.1f}%")
+                else:
+                    logger.warning("Supply air conditions returned None values")
+            except Exception as e:
+                logger.warning(f"Supply air sensors not available for equipment control: {e}")
+        
+        # Same fallback logic as API status
+        if current_vpd is None and hasattr(self.vpd_controller, 'last_vpd') and self.vpd_controller.last_vpd is not None:
+            current_vpd = self.vpd_controller.last_vpd
+            if hasattr(self.vpd_controller, 'last_temp') and self.vpd_controller.last_temp is not None:
+                supply_temp = self.vpd_controller.last_temp
+            if hasattr(self.vpd_controller, 'last_humidity') and self.vpd_controller.last_humidity is not None:
+                supply_humidity = self.vpd_controller.last_humidity
+            logger.info(f"Equipment control using cached values: VPD={current_vpd:.3f}")
+        
+        # Final fallback
+        if current_vpd is None:
+            current_vpd = 0.75
+            logger.warning("No VPD data available for equipment control, using default 0.75 kPa")
+        
+        if supply_temp is None:
+            supply_temp = 68.0
+        if supply_humidity is None:
+            supply_humidity = 60.0
         
         # Get current phase and target setpoint
         try:
@@ -387,8 +408,8 @@ class PrecisionEquipmentController:
         
         # Calculate what equipment states should be based on automatic control
         auto_states = self.calculate_automatic_control(
-            supply_vpd, setpoint.vpd_min, setpoint.vpd_max,
-            supply_dew_point, setpoint.dew_point_target,
+            current_vpd, setpoint.vpd_min, setpoint.vpd_max,
+            55.0, setpoint.dew_point_target,  # Use default dew point for now
             supply_humidity, phase
         )
         
