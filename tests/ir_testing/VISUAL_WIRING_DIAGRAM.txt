@@ -1,0 +1,171 @@
+================================================================================
+DORHEA IR MODULES - VISUAL WIRING DIAGRAM
+Raspberry Pi 4 Connection Guide
+================================================================================
+
+WIRING SUMMARY TABLE
+====================
+
+MODULE          PIN    CONNECT TO      GPIO    PHYSICAL PIN
+-----------     ---    -----------     ----    ------------
+IR Receiver     VCC    3.3V            -       Pin 1
+IR Receiver     GND    Ground          -       Pin 6
+IR Receiver     DAT    Input           18      Pin 12
+
+IR Transmitter  VCC    5V              -       Pin 2
+IR Transmitter  GND    Ground          -       Pin 9
+IR Transmitter  DAT    Output          16      Pin 36
+
+NOTE: Using GPIO 16 (not 17) because GPIO 17 is used by dehum fan!
+
+
+RASPBERRY PI GPIO HEADER (Physical Pin Numbers)
+================================================
+
+Looking at Pi with USB ports at bottom:
+
+    3.3V [1] (2) 5V        ← Receiver VCC to Pin 1, Transmitter VCC to Pin 2
+         [3] (4) 5V
+         [5] (6) GND       ← Receiver GND to Pin 6
+         [7] (8)
+     GND [9] (10)          ← Transmitter GND to Pin 9
+        [11] (12) GPIO 18  ← Receiver DAT to Pin 12
+        [13] (14) GND
+        [15] (16)
+        [17] (18)
+        [19] (20) GND
+        [21] (22)
+        [23] (24)
+     GND[25] (26)
+        [27] (28)
+        [29] (30) GND
+        [31] (32)
+        [33] (34) GND
+        [35] (36) GPIO 16  ← Transmitter DAT to Pin 36
+        [37] (38)
+     GND[39] (40)
+
+
+SIMPLE CONNECTION DIAGRAM
+==========================
+
+IR RECEIVER MODULE:                     RASPBERRY PI 4:
+┌─────────────────┐                    
+│   [LED] [1838]  │                    Pin 1  [3.3V] ←─── VCC (Red wire)
+│                 │                    Pin 6  [GND]  ←─── GND (Black wire)
+│  DAT  VCC  GND  │                    Pin 12 [GPIO18] ←─ DAT (Blue wire)
+└─────────────────┘                    
+
+
+IR TRANSMITTER MODULE:                  RASPBERRY PI 4:
+┌─────────────────┐                    
+│   [LED] [IR-LED]│                    Pin 2  [5V]   ←─── VCC (Red wire)
+│                 │                    Pin 9  [GND]  ←─── GND (Black wire)
+│  DAT  VCC  GND  │                    Pin 36 [GPIO16] ←─ DAT (Yellow wire)
+└─────────────────┘                    
+
+
+STEP-BY-STEP WIRING
+===================
+
+STEP 1: IR RECEIVER
+-------------------
+1. Connect RED wire from Receiver VCC to Pi Pin 1 (3.3V)
+2. Connect BLACK wire from Receiver GND to Pi Pin 6 (GND)
+3. Connect BLUE wire from Receiver DAT to Pi Pin 12 (GPIO 18)
+
+STEP 2: IR TRANSMITTER
+----------------------
+4. Connect RED wire from Transmitter VCC to Pi Pin 2 (5V)
+5. Connect BLACK wire from Transmitter GND to Pi Pin 9 (GND)
+6. Connect YELLOW wire from Transmitter DAT to Pi Pin 36 (GPIO 16)
+
+
+PRE-POWER CHECKLIST
+===================
+
+□ Receiver VCC connected to Pin 1 (3.3V)
+□ Receiver GND connected to Pin 6
+□ Receiver DAT connected to Pin 12 (GPIO 18)
+□ Transmitter VCC connected to Pin 2 (5V)
+□ Transmitter GND connected to Pin 9
+□ Transmitter DAT connected to Pin 36 (GPIO 16) ← Not Pin 11!
+□ No loose wires
+□ No wires touching wrong pins
+□ Module LEDs intact
+
+
+PIN IDENTIFICATION ON RASPBERRY PI
+===================================
+
+To find Pin 1:
+- Locate SD card slot (bottom edge)
+- Pin 1 is on same side as SD card
+- Usually has white arrow or dot
+- Count from there
+
+    SD Card →  [Pin 1] [Pin 2]
+               [Pin 3] [Pin 4]
+               [Pin 5] [Pin 6]  ← Receiver GND here
+                 ...
+               [Pin 9] [Pin 10] ← Transmitter GND at Pin 9
+              [Pin 11][Pin 12] ← Receiver DAT at Pin 12
+                 ...
+              [Pin 35][Pin 36] ← Transmitter DAT at Pin 36
+
+
+TESTING COMMANDS
+================
+
+After wiring, test with:
+
+Terminal 1:
+-----------
+cd ~/cannabis-dryer/tests/ir_testing
+python3 test_ir_receiver.py
+
+Point TV remote at receiver and press buttons.
+Should see pulses printed!
+
+
+Terminal 2:
+-----------
+cd ~/cannabis-dryer/tests/ir_testing
+python3 test_ir_transmitter.py
+
+Point phone camera at transmitter LED.
+Should see purple/white flashes!
+
+
+TROUBLESHOOTING QUICK FIX
+==========================
+
+No pulses from receiver?
+→ Check Pin 1 has 3.3V
+→ Check Pin 6 is connected
+→ Try different remote
+→ Verify Pin 12 connection
+
+No flash from transmitter?
+→ Check Pin 2 has 5V
+→ Check Pin 36 connection
+→ Verify LED on module
+
+GPIO permission error?
+→ Run: sudo python3 test_ir_receiver.py
+
+
+COLOR CODING (Optional)
+========================
+
+Use these wire colors to stay organized:
+
+RED    = All power (VCC) connections
+BLACK  = All ground (GND) connections
+BLUE   = Receiver data signal
+YELLOW = Transmitter data signal
+
+
+================================================================================
+Good luck! Double-check Pin 36 for transmitter (not Pin 11!) 🚀
+================================================================================
