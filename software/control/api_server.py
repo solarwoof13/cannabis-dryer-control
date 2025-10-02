@@ -199,7 +199,7 @@ def get_status():
         drying_progress = 0
         curing_progress = 0
         phase_day = 1
-        phase_total_days = 4
+        phase_total_days = 4;
         
         if hasattr(controller, 'process_start_time') and controller.process_start_time:
             elapsed = datetime.now() - controller.process_start_time
@@ -1229,18 +1229,6 @@ def dashboard():
                     </div>
                     <div class="metric">
                         <span class="label">Water Activity</span>
-                        <span class="value" id="water-activity">--</span>
-                    </div>
-                </div>
-                
-                <div class="status-card">
-                    <h2>Environmental Conditions</h2>
-                    <div class="metric">
-                        <span class="label">VPD (kPa)</span>
-                        <span class="value" id="vpd">--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="label">Temperature (°F)</span>
                         <span class="value" id="temperature">--</span>
                     </div>
                     <div class="metric">
