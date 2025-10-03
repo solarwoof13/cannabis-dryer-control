@@ -9,6 +9,7 @@ import logging
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, Tuple
+from software.control.tuya_minisplit_control import create_controller as create_minisplit_controller
 
 # IMPORT GPIO AT MODULE LEVEL - CRITICAL!
 try:
@@ -125,8 +126,13 @@ class PrecisionEquipmentController:
                     GPIO.output(pin, gpio_state)
                     logger.info(f"Initial state applied: {equipment} = {state} (GPIO {pin} = {'LOW' if state == 'ON' else 'HIGH'})")
 
-    # ADD THESE METHODS TO: software/control/precision_equipment_control.py
-    # Add after the __init__ method and before set_control_mode
+        # Initialize mini-split WiFi control
+        try:
+            self.minisplit_controller = create_minisplit_controller()
+            logger.info("Mini-split WiFi control initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize mini-split WiFi control: {e}")
+            self.minisplit_controller = None
 
     def emergency_stop(self):
         """Emergency stop - immediately turn OFF all equipment"""
@@ -406,6 +412,19 @@ class PrecisionEquipmentController:
             logger.error(f"Failed to get phase setpoint: {e}")
             return
         
+        # Update mini-split temperature based on VPD controller setpoint
+        if self.minisplit_controller and hasattr(self.vpd_controller, 'mini_split_setpoint'):
+            target_temp = self.vpd_controller.mini_split_setpoint
+            # Only send command if temperature changed significantly (0.5°F threshold)
+            if not hasattr(self, '_last_minisplit_temp') or abs(target_temp - self._last_minisplit_temp) >= 0.5:
+                logger.info(f"Mini-split setpoint changed: {getattr(self, '_last_minisplit_temp', 'N/A')} → {target_temp}°F")
+                success = self.minisplit_controller.set_temperature(target_temp, 'cool')
+                if success:
+                    self._last_minisplit_temp = target_temp
+                    logger.info(f"✓ Mini-split set to {target_temp}°F via WiFi")
+                else:
+                    logger.warning(f"Failed to set mini-split to {target_temp}°F")
+
         # Calculate what equipment states should be based on automatic control
         auto_states = self.calculate_automatic_control(
             current_vpd, setpoint.vpd_min, setpoint.vpd_max,
