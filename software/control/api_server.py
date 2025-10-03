@@ -37,6 +37,8 @@ equipment_controller = None  # Add this global variable
 data_logger = []
 MAX_DATA_POINTS = 1000  # Keep last 1000 readings
 DATA_LOG_INTERVAL = 30  # Log every 30 seconds
+# Global update thread for background tasks
+update_thread = None
 
 def init_controller(ctrl, equip_ctrl=None):
     """Initialize the controller reference"""
