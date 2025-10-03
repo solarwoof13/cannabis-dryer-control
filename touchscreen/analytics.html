@@ -779,6 +779,8 @@
             console.log('Loading session:', sessionId);
             
             if (sessionId === 'current') {
+                // Clear live data when switching back to current session
+                liveChartData = [];
                 // Load current session data
                 updateChart('live');
                 updateStats('live');
@@ -795,6 +797,10 @@
 
         // Global chart variable
         let mainChart = null;
+        
+        // Global live data storage for scrolling chart
+        let liveChartData = [];
+        const MAX_LIVE_POINTS = 50; // Show last 50 points in live mode
 
         // Update chart based on time range
         async function updateChart(range) {
@@ -810,19 +816,25 @@
                 let data;
                 
                 if (range === 'live') {
-                    // For live data, get current status
-                    const response = await fetch('/api/status');
-                    const status = await response.json();
-                    
-                    // Create live data point
+                    // For live data, accumulate points and implement scrolling
                     const now = new Date();
-                    data = [{
+                    const newPoint = {
                         timestamp: now.getTime() / 1000,
                         vpd: status.current_vpd || 0.75,
                         temperature: status.current_temp || 68,
                         humidity: status.current_humidity || 60,
                         dew_point: status.supply_dew_point || status.dew_point || 55
-                    }];
+                    };
+                    
+                    // Add new point to live data
+                    liveChartData.push(newPoint);
+                    
+                    // Keep only the most recent MAX_LIVE_POINTS
+                    if (liveChartData.length > MAX_LIVE_POINTS) {
+                        liveChartData = liveChartData.slice(-MAX_LIVE_POINTS);
+                    }
+                    
+                    data = liveChartData;
                 } else {
                     // For historical data, fetch from history API
                     const apiRangeMap = {
@@ -855,12 +867,12 @@
                     } else {
                         return date.toLocaleDateString();
                     }
-                }).reverse();
+                });
                 
-                const vpdData = data.map(point => point.vpd).reverse();
-                const tempData = data.map(point => point.temperature).reverse();
-                const humidityData = data.map(point => point.humidity).reverse();
-                const dewPointData = data.map(point => point.dew_point || 55).reverse(); // Default to 55 if null
+                const vpdData = data.map(point => point.vpd);
+                const tempData = data.map(point => point.temperature);
+                const humidityData = data.map(point => point.humidity);
+                const dewPointData = data.map(point => point.dew_point || 55);
                 
                 // Create or update chart
                 if (mainChart) {
@@ -1072,7 +1084,10 @@
                 
                 // Set up live updates for live mode
                 if (range === 'live') {
-                    window.liveUpdateInterval = setInterval(() => updateStats('live'), 5000);
+                    window.liveUpdateInterval = setInterval(() => {
+                        updateChart('live');
+                        updateStats('live');
+                    }, 5000); // Update every 5 seconds
                 }
                 
             } catch (error) {
