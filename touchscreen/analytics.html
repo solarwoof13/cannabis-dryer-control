@@ -583,7 +583,7 @@
             </div>
             <div class="chart-canvas">
                 <canvas id="mainChart" style="display: none;"></canvas>
-                <div class="chart-placeholder">Chart Loading...</div>
+                <div class="chart-placeholder">Loading real sensor data...</div>
             </div>
         </div>
 
@@ -675,35 +675,23 @@
             <!-- Process Timeline -->
             <div class="timeline-card">
                 <div class="timeline-header">Process Progress</div>
-                <div class="timeline-phases">
-                    <div class="phase-block completed"></div>
-                    <div class="phase-block completed"></div>
-                    <div class="phase-block completed"></div>
-                    <div class="phase-block completed"></div>
-                    <div class="phase-block active"></div>
-                    <div class="phase-block active"></div>
-                    <div class="phase-block"></div>
-                    <div class="phase-block"></div>
+                <div class="timeline-phases" id="timelinePhases">
+                    <!-- Will be populated dynamically -->
                 </div>
                 <div class="phase-labels">
                     <div class="phase-label">Day 1</div>
                     <div class="phase-label">Day 4</div>
                     <div class="phase-label">Day 8</div>
                 </div>
-                <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-                    <div style="color: white; font-size: 13px; font-weight: 600;">
-                        Drying: <span style="color: #00C310;">Complete</span>
-                    </div>
-                    <div style="color: white; font-size: 13px; font-weight: 600;">
-                        Curing: <span style="color: #8858ed;">Day 2 of 4</span>
-                    </div>
+                <div style="margin-top: 15px; display: flex; justify-content: space-between;" id="processStatus">
+                    <!-- Will be populated dynamically -->
                 </div>
             </div>
 
             <!-- Equipment Runtime -->
             <div class="stat-card">
                 <div class="stat-header">
-                    <div class="stat-title">Equipment Runtime</div>
+                    <div class="stat-title">Equipment Status</div>
                     <div class="stat-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
@@ -719,23 +707,12 @@
                         </svg>
                     </div>
                 </div>
-                <div class="stat-value">18.5<span class="stat-unit">hrs</span></div>
+                <div class="stat-value" id="activeEquipmentCount">--</div>
                 <div class="stat-change">
-                    <div class="change-value" style="color: rgba(255,255,255,0.6);">Today's total</div>
+                    <div class="change-value" style="color: rgba(255,255,255,0.6);">Equipment currently active</div>
                 </div>
-                <div style="margin-top: 10px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span style="color: rgba(255,255,255,0.6); font-size: 10px;">Mini-Split</span>
-                        <span style="color: #00C310; font-size: 10px; font-weight: 600;">12h</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span style="color: rgba(255,255,255,0.6); font-size: 10px;">Dehumidifier</span>
-                        <span style="color: #FFA500; font-size: 10px; font-weight: 600;">4.5h</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="color: rgba(255,255,255,0.6); font-size: 10px;">Fans</span>
-                        <span style="color: #8858ed; font-size: 10px; font-weight: 600;">24h</span>
-                    </div>
+                <div style="margin-top: 10px;" id="equipmentStatusList">
+                    <!-- Will be populated dynamically -->
                 </div>
             </div>
 
@@ -844,20 +821,28 @@
                         vpd: status.current_vpd || 0.75,
                         temperature: status.current_temp || 68,
                         humidity: status.current_humidity || 60,
-                        dew_point: status.dew_point || 55
+                        dew_point: status.supply_dew_point || status.dew_point || 55
                     }];
                 } else {
-                    // Map frontend ranges to API ranges
+                    // For historical data, fetch from history API
                     const apiRangeMap = {
                         'hourly': '1h',
                         'daily': '24h', 
                         'weekly': '7d',
-                        'session': '7d'  // Use 7d for session data
+                        'session': '7d'
                     };
                     
                     const apiRange = apiRangeMap[range] || '24h';
                     const response = await fetch(`/api/history/${apiRange}`);
                     data = await response.json();
+                    
+                    // If no historical data, show message
+                    if (!data || data.length === 0) {
+                        canvas.style.display = 'none';
+                        placeholder.style.display = 'block';
+                        placeholder.textContent = `No historical data available for ${range} view. Data logging started - check back in a few minutes.`;
+                        return;
+                    }
                 }
                 
                 // Process data for chart
@@ -875,7 +860,7 @@
                 const vpdData = data.map(point => point.vpd).reverse();
                 const tempData = data.map(point => point.temperature).reverse();
                 const humidityData = data.map(point => point.humidity).reverse();
-                const dewPointData = data.map(point => point.dew_point).reverse();
+                const dewPointData = data.map(point => point.dew_point || 55).reverse(); // Default to 55 if null
                 
                 // Create or update chart
                 if (mainChart) {
@@ -1042,6 +1027,12 @@
                         runtimeElement.textContent = `${hours}h ${minutes}m`;
                     }
                     
+                    // Update process progress timeline
+                    updateProcessProgress(data.drying_progress || 0, data.curing_progress || 0, data.current_phase);
+                    
+                    // Update equipment status
+                    updateEquipmentStatus(data.equipment);
+                    
                 } else {
                     // For historical data, calculate averages from history API
                     const apiRangeMap = {
@@ -1087,6 +1078,112 @@
             } catch (error) {
                 console.error('Error updating stats:', error);
             }
+        }
+
+        // Update equipment status list
+        function updateEquipmentStatus(equipment) {
+            const equipmentList = document.getElementById('equipmentStatusList');
+            const activeCount = document.getElementById('activeEquipmentCount');
+            
+            if (!equipmentList || !activeCount || !equipment) return;
+            
+            // Clear existing content
+            equipmentList.innerHTML = '';
+            
+            // Count active equipment
+            let activeCountNum = 0;
+            const equipmentMap = {
+                'mini_split': 'Mini-Split',
+                'dehum': 'Dehumidifier', 
+                'hum': 'Humidifier',
+                'supply_fan': 'Supply Fan',
+                'return_fan': 'Exhaust Fan',
+                'erv': 'ERV'
+            };
+            
+            Object.entries(equipment).forEach(([key, state]) => {
+                const displayName = equipmentMap[key] || key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const isActive = state === 'ON';
+                
+                if (isActive) activeCountNum++;
+                
+                const statusItem = document.createElement('div');
+                statusItem.style.display = 'flex';
+                statusItem.style.justifyContent = 'space-between';
+                statusItem.style.marginBottom = '5px';
+                
+                statusItem.innerHTML = `
+                    <span style="color: rgba(255,255,255,0.6); font-size: 10px;">${displayName}</span>
+                    <span style="color: ${isActive ? '#00C310' : '#FF4444'}; font-size: 10px; font-weight: 600;">${state}</span>
+                `;
+                
+                equipmentList.appendChild(statusItem);
+            });
+            
+            activeCount.textContent = activeCountNum;
+        }
+
+        // Update process progress timeline
+        function updateProcessProgress(dryingProgress, curingProgress, currentPhase) {
+            const timelinePhases = document.getElementById('timelinePhases');
+            const processStatus = document.getElementById('processStatus');
+            
+            if (!timelinePhases || !processStatus) return;
+            
+            // Clear existing content
+            timelinePhases.innerHTML = '';
+            processStatus.innerHTML = '';
+            
+            // Create phase blocks based on progress
+            const totalPhases = 8; // 4 drying + 4 curing phases
+            const dryingPhases = 4;
+            const curingPhases = 4;
+            
+            for (let i = 0; i < totalPhases; i++) {
+                const phaseBlock = document.createElement('div');
+                phaseBlock.className = 'phase-block';
+                
+                if (i < dryingPhases) {
+                    // Drying phases
+                    const phaseProgress = Math.min(100, (dryingProgress / 100) * (dryingPhases - i) * (100 / dryingPhases));
+                    if (phaseProgress >= 100) {
+                        phaseBlock.classList.add('completed');
+                    } else if (i === Math.floor((dryingProgress / 100) * dryingPhases)) {
+                        phaseBlock.classList.add('active');
+                    }
+                } else {
+                    // Curing phases
+                    const curingPhaseIndex = i - dryingPhases;
+                    const phaseProgress = Math.min(100, (curingProgress / 100) * (curingPhases - curingPhaseIndex) * (100 / curingPhases));
+                    if (phaseProgress >= 100) {
+                        phaseBlock.classList.add('completed');
+                    } else if (curingPhaseIndex === Math.floor((curingProgress / 100) * curingPhases)) {
+                        phaseBlock.classList.add('active');
+                    }
+                }
+                
+                timelinePhases.appendChild(phaseBlock);
+            }
+            
+            // Update status text
+            const dryingStatus = dryingProgress >= 100 ? 
+                '<span style="color: #00C310;">Complete</span>' : 
+                `Day ${Math.max(1, Math.ceil((dryingProgress / 100) * 4))} of 4`;
+            
+            const curingStatus = dryingProgress >= 100 ? 
+                (curingProgress >= 100 ? 
+                    '<span style="color: #00C310;">Complete</span>' : 
+                    `Day ${Math.max(1, Math.ceil((curingProgress / 100) * 4))} of 4`) : 
+                '<span style="color: #888;">Pending</span>';
+            
+            processStatus.innerHTML = `
+                <div style="color: white; font-size: 13px; font-weight: 600;">
+                    Drying: ${dryingStatus}
+                </div>
+                <div style="color: white; font-size: 13px; font-weight: 600;">
+                    Curing: ${curingStatus}
+                </div>
+            `;
         }
 
         // Export functionality

@@ -33,11 +33,20 @@ ENABLE_AUTH = os.environ.get('ENABLE_AUTH', 'false').lower() == 'true'
 
 equipment_controller = None  # Add this global variable
 
+# Global data logger for analytics
+data_logger = []
+MAX_DATA_POINTS = 1000  # Keep last 1000 readings
+DATA_LOG_INTERVAL = 30  # Log every 30 seconds
+
 def init_controller(ctrl, equip_ctrl=None):
     """Initialize the controller reference"""
     global controller, equipment_controller
     controller = ctrl
     equipment_controller = equip_ctrl
+    
+    # Start data logging for analytics
+    start_data_logging()
+    
     logger.info("Controller initialized in API server")
 
 def check_api_key():
@@ -206,7 +215,7 @@ def get_status():
         # Calculate progress
         drying_progress = 0
         curing_progress = 0
-        phase_day = 1
+        phase_day = 1;
         phase_total_days = 4;
         
         if hasattr(controller, 'process_start_time') and controller.process_start_time:
@@ -562,31 +571,46 @@ def get_history(timeframe):
     """Get historical data for graphs
     timeframe: '1h', '6h', '24h', '7d'
     """
-    # In production, this would query a time-series database
-    # For now, return mock data
+    if not data_logger:
+        # If no logged data, return empty array
+        return jsonify([])
     
-    data_points = {
-        '1h': 60,    # 1 point per minute
-        '6h': 72,    # 1 point per 5 minutes
-        '24h': 96,   # 1 point per 15 minutes
-        '7d': 168    # 1 point per hour
+    # Define time ranges in seconds
+    time_ranges = {
+        '1h': 3600,    # 1 hour
+        '6h': 21600,   # 6 hours
+        '24h': 86400,  # 24 hours
+        '7d': 604800   # 7 days
     }
     
-    points = data_points.get(timeframe, 24)
+    range_seconds = time_ranges.get(timeframe, 86400)  # Default to 24h
+    cutoff_time = datetime.now().timestamp() - range_seconds
     
-    # Generate mock historical data
-    import random
-    history = []
-    for i in range(points):
-        history.append({
-            'timestamp': (datetime.now().timestamp() - (i * 60)),
-            'vpd': 0.8 + random.uniform(-0.2, 0.2),
-            'temperature': 68 + random.uniform(-2, 2),
-            'humidity': 60 + random.uniform(-5, 5),
-            'dew_point': 55 + random.uniform(-2, 2)
-        })
+    # Filter data for the requested time range
+    filtered_data = [point for point in data_logger if point['timestamp'] >= cutoff_time]
     
-    return jsonify(history)
+    # If we don't have enough data points for the range, return what we have
+    if not filtered_data:
+        # Return current data point if available
+        current_data = []
+        if controller:
+            try:
+                if hasattr(controller, 'get_supply_air_conditions'):
+                    supply_temp, supply_humidity, supply_dew_point, supply_vpd = controller.get_supply_air_conditions()
+                    if supply_vpd is not None:
+                        current_data = [{
+                            'timestamp': datetime.now().timestamp(),
+                            'vpd': float(supply_vpd),
+                            'temperature': float(supply_temp) if supply_temp else 68.0,
+                            'humidity': float(supply_humidity) if supply_humidity else 60.0,
+                            'dew_point': float(supply_dew_point) if supply_dew_point else 55.0
+                        }]
+            except Exception as e:
+                logger.debug(f"No current data available: {e}")
+        return jsonify(current_data)
+    
+    # Return the filtered historical data
+    return jsonify(filtered_data)
 
 @app.route('/api/config', methods=['GET', 'POST'])
 def manage_config():
@@ -1325,9 +1349,7 @@ def dashboard():
     </html>
     ''')
 
-# Start background update thread
-update_thread = None
-
+# Start background tasks
 def start_background_tasks():
     """Start background tasks"""
     global update_thread
@@ -1335,6 +1357,66 @@ def start_background_tasks():
         update_thread = threading.Thread(target=broadcast_updates, daemon=True)
         update_thread.start()
         logger.info("Background update thread started")
+
+# Data logging functions
+
+def log_sensor_data():
+    """Log current sensor data for analytics"""
+    global data_logger
+    
+    if not controller:
+        return
+    
+    try:
+        # Get current sensor data
+        current_vpd = None
+        current_temp = None
+        current_humidity = None
+        dew_point = None
+        
+        # Use supply air conditions for logging
+        if hasattr(controller, 'get_supply_air_conditions'):
+            try:
+                supply_temp, supply_humidity, supply_dew_point, supply_vpd = controller.get_supply_air_conditions()
+                if supply_vpd is not None and supply_temp is not None and supply_humidity is not None:
+                    current_vpd = supply_vpd
+                    current_temp = supply_temp
+                    current_humidity = supply_humidity
+                    dew_point = supply_dew_point
+            except Exception as e:
+                logger.debug(f"Supply air data not available for logging: {e}")
+        
+        # Only log if we have valid data
+        if current_vpd is not None and current_temp is not None and current_humidity is not None:
+            data_point = {
+                'timestamp': datetime.now().timestamp(),
+                'vpd': float(current_vpd),
+                'temperature': float(current_temp),
+                'humidity': float(current_humidity),
+                'dew_point': float(dew_point) if dew_point is not None else None
+            }
+            
+            data_logger.append(data_point)
+            
+            # Keep only the most recent MAX_DATA_POINTS
+            if len(data_logger) > MAX_DATA_POINTS:
+                data_logger.pop(0)  # Remove oldest
+            
+            logger.debug(f"Logged sensor data: VPD={current_vpd:.3f}, T={current_temp:.1f}°F, RH={current_humidity:.1f}%")
+    
+    except Exception as e:
+        logger.debug(f"Error logging sensor data: {e}")
+
+def start_data_logging():
+    """Start background data logging"""
+    def logging_loop():
+        while True:
+            log_sensor_data()
+            time.sleep(DATA_LOG_INTERVAL)
+    
+    logging_thread = threading.Thread(target=logging_loop, daemon=True)
+    logging_thread.start()
+    logger.info(f"Data logging started - interval: {DATA_LOG_INTERVAL}s, max points: {MAX_DATA_POINTS}")
 
 @app.route('/api/debug/equipment', methods=['GET'])
 def debug_equipment():
