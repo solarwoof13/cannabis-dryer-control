@@ -181,17 +181,25 @@ def get_status():
                 system_state = 'idle'
                 cycle_state = 'idle'
             elif phase_value == 'storage':
-                # Storage phase: if process is active, it's resumed from hold (running), otherwise it's holding
-                if process_active:
-                    system_state = 'running'
-                    cycle_state = 'running'
-                else:
+                # FIXED: Storage phase logic
+                # If process_active is False, we're in HOLD mode
+                # If process_active is True and we're in storage, we're actively running storage
+                if not process_active:
+                    # HOLD MODE: Equipment monitoring only, no active drying
                     system_state = 'holding'
                     cycle_state = 'holding'
+                    logger.debug("Status: HOLD mode (storage phase, process_active=False)")
+                else:
+                    # ACTIVE STORAGE: Process complete, actively maintaining conditions
+                    system_state = 'running'
+                    cycle_state = 'running'
+                    logger.debug("Status: ACTIVE STORAGE (storage phase, process_active=True)")
             elif process_active:
+                # Normal running state for all other phases
                 system_state = 'running'
                 cycle_state = 'running'
             else:
+                # Idle state
                 system_state = 'idle'
                 cycle_state = 'idle'
         
@@ -759,29 +767,32 @@ def start_process():
 
 @app.route('/api/process/hold', methods=['POST'])
 def hold_process():
-    """Jump to storage/hold mode"""
+    """Put process into storage/hold mode - maintains conditions but stops active drying"""
     if not controller:
         return jsonify({'error': 'System not initialized'}), 503
     
     try:
         from software.control.vpd_controller import DryingPhase
         
+        # CRITICAL FIX: Set process_active = False to indicate hold state
+        controller.process_active = False  # <-- THIS IS THE KEY FIX
         controller.current_phase = DryingPhase.STORAGE
         controller.phase_start_time = datetime.now()
         
-        # Force equipment states for storage mode immediately
+        # Force equipment states for storage/hold mode immediately
         if equipment_controller:
-            logger.info("Forcing equipment states for STORAGE mode")
+            logger.info("Forcing equipment states for STORAGE/HOLD mode")
             
-            # Storage mode: fans running, humidity monitoring active
+            # Storage/Hold mode: minimal equipment for monitoring
+            # Temperature control ON, but reduced humidity control
             storage_states = {
                 'mini_split': 'ON',    # Maintain temperature
-                'supply_fan': 'ON',    # Keep air circulating
+                'supply_fan': 'ON',    # Keep air circulating at low speed
                 'return_fan': 'ON',    # Keep air circulating
                 'hum_fan': 'ON',       # Always on for humidity monitoring
-                'hum_solenoid': 'OFF', # Will be controlled by humidity
-                'dehum': 'OFF',        # Will be controlled by humidity
-                'erv': 'OFF'           # No fresh air exchange
+                'hum_solenoid': 'OFF', # Will be controlled automatically if needed
+                'dehum': 'OFF',        # Will be controlled automatically if needed  
+                'erv': 'OFF'           # No fresh air exchange in hold mode
             }
             
             # Apply states directly
@@ -796,23 +807,24 @@ def hold_process():
                 controller.equipment_states[equipment] = \
                     EquipmentState.ON if state == 'ON' else EquipmentState.OFF
             
-            logger.info(f"STORAGE mode states applied: {equipment_controller.actual_states}")
+            logger.info(f"STORAGE/HOLD mode states applied: {equipment_controller.actual_states}")
         
-        # Save state
+        # Save state with process_active = False
         state_manager = StateManager()
         state_manager.save_state({
-            'process_active': True,
+            'process_active': False,  # <-- CRITICAL: False indicates hold state
             'current_phase': 'storage',
             'process_start_time': controller.process_start_time,
             'phase_start_time': controller.phase_start_time,
             'equipment_states': equipment_controller.actual_states if equipment_controller else {}
         })
         
-        logger.info("Process put on HOLD - entering STORAGE mode")
+        logger.info("Process put on HOLD - entering STORAGE mode (process_active=False)")
         
         return jsonify({
             'success': True,
-            'message': 'Process on hold - storage mode active'
+            'message': 'Process on hold - storage mode active',
+            'cycle_state': 'holding'  # Explicitly tell frontend we're holding
         })
     except Exception as e:
         logger.error(f"Hold process error: {e}")
