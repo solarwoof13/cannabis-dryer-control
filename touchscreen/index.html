@@ -1216,6 +1216,14 @@
                     return;
                 }
                 
+                // Check for holding state
+                if (cycleState === 'holding') {
+                    modeText.textContent = 'STORAGE MODE';
+                    modeProgress.textContent = 'Process on Hold';
+                    modeText.style.color = '#FFA500';
+                    return;
+                }
+                
                 // Map backend phase names to display
                 const phaseMap = {
                     'dry_initial': { text: 'DRYING MODE', subtext: 'Day 1-2', color: '#FFD700' },
@@ -1332,7 +1340,7 @@
                     }
                 }
             }
-        }  // THIS CLOSING BRACE WAS MISSING!
+        }
 
         function startProcess() {
             if (systemState !== 'idle' && systemState !== 'complete') {
@@ -1406,6 +1414,7 @@
                 
                 // Update UI immediately
                 updateButtonStates();
+                updateSystemModeDisplay();
                 
                 // Update all equipment display to OFF
                 document.querySelectorAll('.equipment-item').forEach(item => {
@@ -1864,7 +1873,7 @@
                     if (systemState === 'idle' || systemState === 'complete') {
                         startProcess();
                     } else if (cycleState === 'emergency') {
-                        // Resume from emergency stop
+                                               // Resume from emergency stop
                         if (confirm('Resume normal operation from emergency stop?')) {
                             fetch('/api/process/start', {
                                 method: 'POST',
@@ -1958,6 +1967,7 @@
                             console.log('Switched to hold/storage:', data);
                             cycleState = 'holding';
                             updateButtonStates();
+                            updateSystemModeDisplay();
                             updateDashboard();
                         })
                         .catch(err => console.error('Hold process error:', err));
