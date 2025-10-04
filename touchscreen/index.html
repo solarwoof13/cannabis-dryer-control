@@ -1824,7 +1824,7 @@
                 }
             })
             .then(response => response.json())
-            .then data => {
+            .then(data => {
                 console.log(`Toggled ${equipmentId}:`, data);
                 if (data.success) {
                     // Update will happen on next dashboard update
