@@ -1087,7 +1087,6 @@
         let phaseDay = 0;
         let totalPhaseDays = 0;
         let processStartTime = null;
-        let systemState = 'idle';
 
         function updateButtonStates() {
             const startBtn = document.getElementById('start-btn');
@@ -1122,7 +1121,7 @@
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
-                    // Update state from backend
+                    // Update state from backend - prioritize cycle_state over system_state
                     if (data.cycle_state) {
                         cycleState = data.cycle_state;
                     } else if (data.system_state) {
@@ -1134,11 +1133,24 @@
                     dryingProgress = data.drying_progress || 0;
                     curingProgress = data.curing_progress || 0;
                     
+                    // Update VPD values from backend
+                    if (data.current_vpd !== undefined) {
+                        currentVPD = data.current_vpd;
+                    }
+                    if (data.vpd_target_min !== undefined) {
+                        VPD_TARGET_MIN = data.vpd_target_min;
+                    }
+                    if (data.vpd_target_max !== undefined) {
+                        VPD_TARGET_MAX = data.vpd_target_max;
+                    }
+                    
                     // Update displays
                     updateButtonStates();
                     updateSystemModeDisplay();
                     updateProgressBars();
                     updateVPDDisplay();
+                    
+                    console.log(`State updated: cycleState=${cycleState}, systemState=${systemState}, phase=${currentPhase}`);
                 })
                 .catch(error => {
                     console.log('Waiting for backend...', error);
@@ -1360,6 +1372,8 @@
             }
         }
 
+        // OLD FUNCTION - NO LONGER USED (replaced by button event handlers)
+        /*
         function startProcess() {
             if (systemState !== 'idle' && systemState !== 'complete') {
                 alert('Process already running!');
@@ -1391,6 +1405,7 @@
                 });
             }
         }
+        */
 
         // Update time and date
         function updateClock() {
@@ -1809,7 +1824,7 @@
                 }
             })
             .then(response => response.json())
-            .then(data => {
+            .then data => {
                 console.log(`Toggled ${equipmentId}:`, data);
                 if (data.success) {
                     // Update will happen on next dashboard update
@@ -1842,7 +1857,7 @@
 
         const vpdCard = document.querySelector('.vpd-main-card');
         if (vpdCard) {
-            vpdCard.addEventListener('touchstart', (e) => {
+                       vpdCard.addEventListener('touchstart', (e) => {
                 touchStartY = e.touches[0].clientY;
                 touchStartVPD = currentVPD;
             }, { passive: true });
@@ -1885,9 +1900,7 @@
                             .then(response => response.json())
                             .then(data => {
                                 console.log('Resumed from pause:', data);
-                                cycleState = 'running';
-                                updateButtonStates();
-                                updateFromController();
+                                updateFromController(); // Let backend determine the actual state
                             })
                             .catch(err => {
                                 console.error('Failed to resume:', err);
@@ -1905,11 +1918,7 @@
                             .then(response => response.json())
                             .then(data => {
                                 console.log('Fresh process started:', data);
-                                cycleState = 'running';
-                                dryingProgress = 0;
-                                curingProgress = 0;
-                                updateButtonStates();
-                                updateFromController();
+                                updateFromController(); // Let backend determine the actual state
                             })
                             .catch(err => {
                                 console.error('Failed to start:', err);
@@ -1917,7 +1926,7 @@
                             });
                         }
                     } else if (cycleState === 'emergency') {
-                        alert('Please use PAUSE or STORAGE to recover from emergency stop.');
+                        alert('Please use STORAGE to recover from emergency stop.');
                     } else if (cycleState === 'running') {
                         alert('Process is already running. Use PAUSE to temporarily stop.');
                     }
@@ -1939,9 +1948,7 @@
                             .then(response => response.json())
                             .then(data => {
                                 console.log('Process paused:', data);
-                                cycleState = 'paused';
-                                updateButtonStates();
-                                updateFromController();
+                                updateFromController(); // Let backend determine the actual state
                             })
                             .catch(err => {
                                 console.error('Pause error:', err);
@@ -1972,11 +1979,7 @@
                         .then(response => response.json())
                         .then(data => {
                             console.log('Entered storage mode:', data);
-                            cycleState = 'storage';
-                            dryingProgress = 0;
-                            curingProgress = 0;
-                            updateButtonStates();
-                            updateFromController();
+                            updateFromController(); // Let backend determine the actual state
                         })
                         .catch(err => {
                             console.error('Storage error:', err);
