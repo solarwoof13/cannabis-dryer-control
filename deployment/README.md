@@ -7,7 +7,7 @@ Scripts for setting up the Cannabis Dryer Control System on Raspberry Pi.
 ### 1. Setup Kiosk Mode (Run Once)
 
 ```bash
-cd ~/cannabis-dryer-control/deployment
+cd ~/cannabis-dryer/deployment
 chmod +x setup_kiosk_mode.sh
 ./setup_kiosk_mode.sh
 # Follow prompts, reboot when asked
@@ -25,13 +25,13 @@ This configures:
 
 **Method 2:** 
 ```bash
-~/cannabis-dryer-control/deployment/exit_kiosk.sh
+~/cannabis-dryer/deployment/exit_kiosk.sh
 ```
 
 ### 3. Test Power Recovery
 
 ```bash
-cd ~/cannabis-dryer-control
+cd ~/cannabis-dryer
 python3 deployment/test_power_recovery.py
 # Follow the prompts
 ```
@@ -55,7 +55,7 @@ sudo systemctl stop cannabis-dryer
 sudo systemctl start cannabis-dryer
 
 # View logs
-tail -f ~/cannabis-dryer-control/logs/dryer_control.log
+tail -f ~/cannabis-dryer/logs/dryer_control.log
 ```
 
 ## Power Loss Recovery

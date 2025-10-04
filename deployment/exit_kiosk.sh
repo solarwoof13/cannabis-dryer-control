@@ -8,4 +8,4 @@ xset +dpms
 pkill unclutter
 echo "✓ Done. Desktop restored."
 echo ""
-echo "To restart kiosk: ~/cannabis-dryer-control/deployment/start_kiosk.sh"
+echo "To restart kiosk: ~/cannabis-dryer/deployment/start_kiosk.sh"
