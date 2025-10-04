@@ -202,19 +202,35 @@
             transform: scale(1.05);
         }
 
-        .hold-button {
-            background: linear-gradient(135deg, rgba(136, 88, 237, 0.2), rgba(102, 51, 187, 0.1));
-            border: 1px solid rgba(136, 88, 237, 0.3);
+        .pause-button {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.1));
+            border: 1px solid rgba(255, 193, 7, 0.4);
         }
 
-        .hold-button:hover {
-            background: linear-gradient(135deg, #FFA500, #FF8C00);
-            box-shadow: 0 4px 10px rgba(255, 165, 0, 0.4);
+        .pause-button:hover {
+            background: linear-gradient(135deg, #FFC107, #FF9800);
+            box-shadow: 0 4px 10px rgba(255, 193, 7, 0.4);
         }
 
-        .hold-button.active {
-            background: linear-gradient(135deg, #FFB700, #FFA500) !important;
-            box-shadow: 0 0 20px rgba(255, 183, 0, 0.8) !important;
+        .pause-button.active {
+            background: linear-gradient(135deg, #FFD54F, #FFC107) !important;
+            box-shadow: 0 0 20px rgba(255, 213, 79, 0.8) !important;
+            transform: scale(1.05);
+        }
+
+        .storage-button {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(25, 118, 210, 0.1));
+            border: 1px solid rgba(33, 150, 243, 0.4);
+        }
+
+        .storage-button:hover {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            box-shadow: 0 4px 10px rgba(33, 150, 243, 0.4);
+        }
+
+        .storage-button.active {
+            background: linear-gradient(135deg, #42A5F5, #2196F3) !important;
+            box-shadow: 0 0 20px rgba(66, 165, 245, 0.8) !important;
             transform: scale(1.05);
         }
 
@@ -799,17 +815,26 @@
                 </svg>
                 <span>Start</span>
             </button>
-            <button class="nav-button hold-button" id="hold-btn">
+            <button class="nav-button pause-button" id="pause-btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="6" y="4" width="12" height="16" rx="2"/>
+                    <rect x="6" y="4" width="4" height="16"/>
+                    <rect x="14" y="4" width="4" height="16"/>
                 </svg>
-                <span>Hold</span>
+                <span>Pause</span>
             </button>
-            <button class="nav-button emergency-button" onclick="emergencyStop()">
+            <button class="nav-button storage-button" id="storage-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="9" y1="21" x2="9" y2="9"/>
+                </svg>
+                <span>Storage</span>
+            </button>
+            <button class="nav-button emergency-button" id="emergency-btn">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                     <rect x="4" y="4" width="16" height="16" rx="2"/>
                 </svg>
-                <span>EMERGENCY STOP</span>
+                <span>EMERGENCY</span>
             </button>
         </div>
     </div>
@@ -1054,61 +1079,57 @@
         let VPD_TARGET_MIN = 0.7;    // Will be replaced with actual value
         let VPD_TARGET_MAX = 0.8;    // Will be replaced with actual value
         let currentVPD = 0.75;        // Will be replaced with actual value
-        let cycleState = 'idle';
+        // State management - UPDATED for 4-button system
+        let cycleState = 'idle';  // idle, running, paused, storage, emergency
         let dryingProgress = 0;    // 0-100%
         let curingProgress = 0;     // 0-100%
-        let currentPhase = 'idle'; // idle, drying, curing, storage
+        let currentPhase = 'idle'; // idle, dry_initial, dry_mid, dry_final, cure, storage
         let phaseDay = 0;
         let totalPhaseDays = 0;
         let processStartTime = null;
+        let systemState = 'idle';
 
         function updateButtonStates() {
             const startBtn = document.getElementById('start-btn');
-            const holdBtn = document.getElementById('hold-btn');
-            const stopBtn = document.querySelector('.emergency-button');
+            const pauseBtn = document.getElementById('pause-btn');
+            const storageBtn = document.getElementById('storage-btn');
+            const emergencyBtn = document.getElementById('emergency-btn');
             
             // Remove ALL active states first
-            if (startBtn) startBtn.classList.remove('active');
-            if (holdBtn) holdBtn.classList.remove('active');
-            if (stopBtn) stopBtn.classList.remove('active');
+            [startBtn, pauseBtn, storageBtn, emergencyBtn].forEach(btn => {
+                if (btn) btn.classList.remove('active');
+            });
             
-            // Set button enabled/disabled and highlight based on current state
-            // ALL buttons are always enabled for user control
-            if (startBtn) startBtn.disabled = false;
-            if (holdBtn) holdBtn.disabled = false;
-            if (stopBtn) stopBtn.disabled = false;
+            // All buttons always enabled for user control
+            [startBtn, pauseBtn, storageBtn, emergencyBtn].forEach(btn => {
+                if (btn) btn.disabled = false;
+            });
             
             // Highlight the active state
-            if (cycleState === 'running') {
-                // START is active and highlighted
-                if (startBtn) startBtn.classList.add('active');
-                
-            } else if (cycleState === 'holding') {
-                // HOLD is active and highlighted
-                if (holdBtn) holdBtn.classList.add('active');
-                
-            } else if (cycleState === 'emergency') {
-                // EMERGENCY STOP is active and highlighted
-                if (stopBtn) stopBtn.classList.add('active');
+            if (cycleState === 'running' && startBtn) {
+                startBtn.classList.add('active');
+            } else if (cycleState === 'paused' && pauseBtn) {
+                pauseBtn.classList.add('active');
+            } else if (cycleState === 'storage' && storageBtn) {
+                storageBtn.classList.add('active');
+            } else if (cycleState === 'emergency' && emergencyBtn) {
+                emergencyBtn.classList.add('active');
             }
         }
 
-        // Function to get real data from your Python controller
+        // Function to get real data from Python controller
         function updateFromController() {
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
-                    // DON'T overwrite emergency state from backend until user takes action
-                    if (cycleState !== 'emergency') {
-                        // Only update state if not in emergency mode
-                        if (data.cycle_state) {
-                            cycleState = data.cycle_state;
-                        } else if (data.system_state) {
-                            cycleState = data.system_state;
-                        }
-                        systemState = data.system_state || 'idle';
+                    // Update state from backend
+                    if (data.cycle_state) {
+                        cycleState = data.cycle_state;
+                    } else if (data.system_state) {
+                        cycleState = data.system_state;
                     }
                     
+                    systemState = data.system_state || 'idle';
                     currentPhase = data.phase || 'idle';
                     dryingProgress = data.drying_progress || 0;
                     curingProgress = data.curing_progress || 0;
@@ -1121,10 +1142,7 @@
                 })
                 .catch(error => {
                     console.log('Waiting for backend...', error);
-                    if (cycleState !== 'emergency') {
-                        cycleState = 'idle';
-                        systemState = 'idle';
-                    }
+                    // Don't change state on error, keep current state
                     updateButtonStates();
                     updateSystemModeDisplay();
                 });
@@ -1847,133 +1865,179 @@
             lastTouchEnd = now;
         }, false);
 
-        // Single consolidated initialization
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize all displays
-            updateClock();
-            updateVPDDisplay();
-            updateButtonStates();
-            updateDashboard();
-            updateSystemModeDisplay();
-            updateProgressBars();
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing Cannabis Dryer Control Interface...');
             
-            // Get initial data from controller
-            updateFromController();
-            
-            // Set up all intervals
-            setInterval(updateClock, 60000);          // Update time every minute
-            setInterval(updateDashboard, 2000);       // Update sensors every 2 seconds
-            setInterval(updateFromController, 2000);  // Update controller every 2 seconds
-            
-            // Hook up the start button 
+            // START BUTTON
             const startBtn = document.getElementById('start-btn');
             if (startBtn) {
-
                 startBtn.addEventListener('click', () => {
-                    if (systemState === 'idle' || systemState === 'complete') {
-                        startProcess();
+                    console.log(`START clicked. Current state: ${cycleState}`);
+                    
+                    if (cycleState === 'paused') {
+                        // Resume from pause - pick up exactly where we left off
+                        if (confirm('Resume process from where it was paused?')) {
+                            fetch('/api/process/start', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({ resume_from_pause: true })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Resumed from pause:', data);
+                                cycleState = 'running';
+                                updateButtonStates();
+                                updateFromController();
+                            })
+                            .catch(err => {
+                                console.error('Failed to resume:', err);
+                                alert('Failed to resume. Check system status.');
+                            });
+                        }
+                    } else if (cycleState === 'idle' || cycleState === 'storage') {
+                        // Start fresh process
+                        if (confirm('Start a new drying/curing batch?')) {
+                            fetch('/api/process/start', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({})  // Empty = fresh start
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Fresh process started:', data);
+                                cycleState = 'running';
+                                dryingProgress = 0;
+                                curingProgress = 0;
+                                updateButtonStates();
+                                updateFromController();
+                            })
+                            .catch(err => {
+                                console.error('Failed to start:', err);
+                                alert('Failed to start. Check system status.');
+                            });
+                        }
                     } else if (cycleState === 'emergency') {
-                                               // Resume from emergency stop
-                        if (confirm('Resume normal operation from emergency stop?')) {
-                            fetch('/api/process/start', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({ resume_from_emergency: true })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log('Resumed from emergency:', data);
-                                cycleState = 'running';
-                                systemState = 'running';
-                                updateButtonStates();
-                                updateSystemModeDisplay();
-                                updateFromController();
-                            })
-                            .catch(err => {
-                                console.error('Failed to resume from emergency:', err);
-                                alert('Failed to resume. Check system status.');
-                            });
-                        }
-                    } else if (cycleState === 'holding') {
-                        // Resume from hold mode
-                        if (confirm('Resume normal drying process from hold mode?')) {
-                            fetch('/api/process/start', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({ resume_from_hold: true })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log('Resumed from hold:', data);
-                                cycleState = 'running';
-                                systemState = 'running';
-                                updateButtonStates();
-                                updateSystemModeDisplay();
-                                updateFromController();
-                            })
-                            .catch(err => {
-                                console.error('Failed to resume from hold:', err);
-                                alert('Failed to resume. Check system status.');
-                            });
-                        }
+                        alert('Please use PAUSE or STORAGE to recover from emergency stop.');
                     } else if (cycleState === 'running') {
-                        // Restart process from running state
-                        if (confirm('Restart the drying process? This will reset timers and start fresh.')) {
-                            fetch('/api/process/start', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({ restart_process: true })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log('Process restarted:', data);
-                                cycleState = 'running';
-                                systemState = 'running';
-                                updateButtonStates();
-                                updateSystemModeDisplay();
-                                updateFromController();
-                            })
-                            .catch(err => {
-                                console.error('Failed to restart process:', err);
-                                alert('Failed to restart. Check system status.');
-                            });
-                        }
-                    } else {
-                        alert('Unable to start process from current state.');
+                        alert('Process is already running. Use PAUSE to temporarily stop.');
                     }
                 });
             }
 
-           
-
-            // Hook up the hold button  
-            const holdBtn = document.getElementById('hold-btn');
-            if (holdBtn) {
-                holdBtn.addEventListener('click', () => {
-                    // Allow Hold from any state - will transition to storage/hold mode
-                    const confirmMsg = cycleState === 'emergency' 
-                        ? 'Recover from emergency stop into storage/hold mode?' 
-                        : cycleState === 'idle'
-                        ? 'Start process in storage/hold mode?'
-                        : 'Switch to storage/hold mode?';
+            // PAUSE BUTTON
+            const pauseBtn = document.getElementById('pause-btn');
+            if (pauseBtn) {
+                pauseBtn.addEventListener('click', () => {
+                    console.log(`PAUSE clicked. Current state: ${cycleState}`);
                     
-                    if (confirm(confirmMsg)) {
-                        fetch('/api/process/hold', {
+                    if (cycleState === 'running') {
+                        if (confirm('Pause drying/curing process at current position?')) {
+                            fetch('/api/process/pause', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'}
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Process paused:', data);
+                                cycleState = 'paused';
+                                updateButtonStates();
+                                updateFromController();
+                            })
+                            .catch(err => {
+                                console.error('Pause error:', err);
+                                alert('Failed to pause. Check system status.');
+                            });
+                        }
+                    } else {
+                        alert('Can only pause when process is running.');
+                    }
+                });
+            }
+
+            // STORAGE BUTTON
+            const storageBtn = document.getElementById('storage-btn');
+            if (storageBtn) {
+                storageBtn.addEventListener('click', () => {
+                    console.log(`STORAGE clicked. Current state: ${cycleState}`);
+                    
+                    const message = cycleState === 'emergency' 
+                        ? 'Recover from emergency into storage mode?' 
+                        : 'Enter storage mode? This will clear current drying/curing progress.';
+                    
+                    if (confirm(message)) {
+                        fetch('/api/process/storage', {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'}
                         })
                         .then(response => response.json())
                         .then(data => {
-                            console.log('Switched to hold/storage:', data);
-                            cycleState = 'holding';
+                            console.log('Entered storage mode:', data);
+                            cycleState = 'storage';
+                            dryingProgress = 0;
+                            curingProgress = 0;
                             updateButtonStates();
-                            updateSystemModeDisplay();
-                            updateDashboard();
+                            updateFromController();
                         })
-                        .catch(err => console.error('Hold process error:', err));
+                        .catch(err => {
+                            console.error('Storage error:', err);
+                            alert('Failed to enter storage mode.');
+                        });
                     }
                 });
             }
+
+            // EMERGENCY STOP BUTTON
+            const emergencyBtn = document.getElementById('emergency-btn');
+            if (emergencyBtn) {
+                emergencyBtn.addEventListener('click', () => {
+                    console.log('EMERGENCY STOP clicked');
+                    
+                    if (confirm('⚠️ EMERGENCY STOP - Turn off all equipment except mini-split?')) {
+                        fetch('/api/emergency-stop', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'}
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Emergency stop activated:', data);
+                            cycleState = 'emergency';
+                            updateButtonStates();
+                            updateFromController();
+                        })
+                        .catch(err => {
+                            console.error('Emergency stop error:', err);
+                            alert('Emergency stop failed - check system manually!');
+                        });
+                    }
+                });
+            }
+
+            // Initialize clock
+            function updateClock() {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+                const dateStr = now.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric'
+                }).toUpperCase();
+                
+                const timeEl = document.getElementById('currentTime');
+                const dateEl = document.getElementById('currentDate');
+                if (timeEl) timeEl.textContent = timeStr;
+                if (dateEl) dateEl.textContent = dateStr;
+            }
+            
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            // Start periodic controller updates
+            updateFromController();
+            setInterval(updateFromController, 3000);  // Update every 3 seconds
         });
     </script>
 </body>

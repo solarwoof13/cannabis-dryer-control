@@ -183,7 +183,11 @@ def get_status():
         # Always define phase_value for later use
         phase_value = current_phase.value if hasattr(current_phase, 'value') else str(current_phase)
         
-        if saved_state.get('emergency_stop', False):
+        # Check for paused state FIRST (highest priority after emergency)
+        if saved_state.get('paused', False):
+            system_state = 'paused'
+            cycle_state = 'paused'
+        elif saved_state.get('emergency_stop', False):
             system_state = 'emergency'
             cycle_state = 'emergency'
         else:
@@ -192,25 +196,12 @@ def get_status():
                 system_state = 'idle'
                 cycle_state = 'idle'
             elif phase_value == 'storage':
-                # FIXED: Storage phase logic
-                # If process_active is False, we're in HOLD mode
-                # If process_active is True and we're in storage, we're actively running storage
-                if not process_active:
-                    # HOLD MODE: Equipment monitoring only, no active drying
-                    system_state = 'holding'
-                    cycle_state = 'holding'
-                    logger.debug("Status: HOLD mode (storage phase, process_active=False)")
-                else:
-                    # ACTIVE STORAGE: Process complete, actively maintaining conditions
-                    system_state = 'running'
-                    cycle_state = 'running'
-                    logger.debug("Status: ACTIVE STORAGE (storage phase, process_active=True)")
+                system_state = 'storage'
+                cycle_state = 'storage'
             elif process_active:
-                # Normal running state for all other phases
                 system_state = 'running'
                 cycle_state = 'running'
             else:
-                # Idle state
                 system_state = 'idle'
                 cycle_state = 'idle'
         
@@ -703,7 +694,7 @@ def health_check():
 
 @app.route('/api/process/start', methods=['POST'])
 def start_process():
-    """Start fresh drying process or resume from emergency"""
+    """Start fresh drying process or resume from pause"""
     if not controller:
         return jsonify({'error': 'System not initialized'}), 503
     
@@ -711,57 +702,24 @@ def start_process():
         from software.control.vpd_controller import DryingPhase
         
         data = request.get_json() or {}
-        resume_from_emergency = data.get('resume_from_emergency', False)
-        resume_from_hold = data.get('resume_from_hold', False)
-        restart_process = data.get('restart_process', False)
+        resume_from_pause = data.get('resume_from_pause', False)
         
-        if resume_from_emergency:
-            # Resume existing process from emergency
+        if resume_from_pause:
+            # Resume from pause - pick up exactly where we left off
             controller.process_active = True
-            # If process_start_time was cleared, restore it
-            if not hasattr(controller, 'process_start_time') or controller.process_start_time is None:
-                controller.process_start_time = datetime.now()  # Restore with current time
             # Keep existing phase and times
-            logger.info(f"Process RESUMED from emergency - Phase: {controller.current_phase}")
+            logger.info(f"Process RESUMED from pause - Phase: {controller.current_phase}")
             
-            # Clear emergency flag
+            # Clear pause flag
             state_manager = StateManager()
             saved_state = state_manager.load_state()
-            saved_state['emergency_stop'] = False
+            saved_state['paused'] = False
+            saved_state['process_active'] = True
             state_manager.save_state(saved_state)
             
-            # Force equipment controller to sync hardware state immediately
-            if equipment_controller and hasattr(equipment_controller, 'sync_hardware_state'):
-                logger.info("Syncing hardware state after emergency resume")
-                equipment_controller.sync_hardware_state()
-            
             return jsonify({
                 'success': True,
-                'message': 'Process resumed from emergency',
-                'phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase)
-            })
-        elif resume_from_hold and hasattr(controller, 'process_start_time') and controller.process_start_time:
-            # Resume existing process from hold
-            controller.process_active = True
-            # Keep existing phase and times
-            logger.info(f"Process RESUMED from hold - Phase: {controller.current_phase}")
-            
-            return jsonify({
-                'success': True,
-                'message': 'Process resumed from hold',
-                'phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase)
-            })
-        elif restart_process:
-            # Restart existing process - reset timers but keep current phase
-            controller.process_active = True
-            controller.process_start_time = datetime.now()
-            controller.phase_start_time = datetime.now()
-            # Keep current phase
-            logger.info(f"Process RESTARTED - Phase: {controller.current_phase}")
-            
-            return jsonify({
-                'success': True,
-                'message': 'Process restarted',
+                'message': 'Process resumed from pause',
                 'phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase)
             })
         else:
@@ -778,7 +736,8 @@ def start_process():
                 'current_phase': 'dry_initial',
                 'process_start_time': controller.process_start_time,
                 'phase_start_time': controller.phase_start_time,
-                'equipment_states': {}  # Will be updated by control loop
+                'equipment_states': {},
+                'paused': False
             })
             
             logger.info("Drying process STARTED - Phase: DRY_INITIAL")
@@ -791,103 +750,98 @@ def start_process():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/process/hold', methods=['POST'])
-def hold_process():
-    """Put process into storage/hold mode - maintains conditions but stops active drying"""
+@app.route('/api/process/pause', methods=['POST'])
+def pause_process():
+    """Pause process at current position - maintains conditions, stops timer"""
+    if not controller:
+        return jsonify({'error': 'System not initialized'}), 503
+    
+    try:
+        # Set process to paused state
+        controller.process_active = False  # Stop timer advancement
+        # Keep current phase and times exactly as they are
+        
+        # Save paused state
+        state_manager = StateManager()
+        state_manager.save_state({
+            'process_active': False,
+            'current_phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase),
+            'process_start_time': controller.process_start_time,
+            'phase_start_time': controller.phase_start_time,
+            'equipment_states': equipment_controller.actual_states if equipment_controller else {},
+            'paused': True  # Flag to indicate this is a pause, not a stop
+        })
+        
+        logger.info(f"Process PAUSED at phase: {controller.current_phase}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Process paused',
+            'cycle_state': 'paused'
+        })
+    except Exception as e:
+        logger.error(f"Pause process error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/process/storage', methods=['POST'])
+def storage_mode():
+    """Enter storage mode - clears progress, uses storage VPD settings"""
     if not controller:
         return jsonify({'error': 'System not initialized'}), 503
     
     try:
         from software.control.vpd_controller import DryingPhase
         
-        # CRITICAL FIX: Set process_active = False to indicate hold state
-        controller.process_active = False  # <-- THIS IS THE KEY FIX
+        # Set to storage mode
+        controller.process_active = False
         controller.current_phase = DryingPhase.STORAGE
         controller.phase_start_time = datetime.now()
+        # Don't set process_start_time - this clears the batch
+        controller.process_start_time = None
         
-        # Force equipment states for storage/hold mode immediately
+        # Apply storage equipment states
         if equipment_controller:
-            logger.info("Forcing equipment states for STORAGE/HOLD mode")
-            
-            # Storage/Hold mode: minimal equipment for monitoring
-            # Temperature control ON, but reduced humidity control
+            logger.info("Applying STORAGE mode equipment states")
             storage_states = {
-                'mini_split': 'ON',    # Maintain temperature
-                'supply_fan': 'ON',    # Keep air circulating at low speed
-                'return_fan': 'ON',    # Keep air circulating
-                'hum_fan': 'ON',       # Always on for humidity monitoring
-                'hum_solenoid': 'OFF', # Will be controlled automatically if needed
-                'dehum': 'OFF',        # Will be controlled automatically if needed  
-                'erv': 'OFF'           # No fresh air exchange in hold mode
+                'mini_split': 'ON',
+                'supply_fan': 'ON',
+                'return_fan': 'ON',
+                'hum_fan': 'ON',
+                'hum_solenoid': 'OFF',
+                'dehum': 'OFF',
+                'erv': 'OFF'
             }
             
-            # Apply states directly
             for equipment, state in storage_states.items():
                 if equipment in equipment_controller.actual_states:
                     equipment_controller.actual_states[equipment] = state
                     equipment_controller._apply_state(equipment, state)
-            
-            # Update VPD controller states
-            from software.control.vpd_controller import EquipmentState
-            for equipment, state in equipment_controller.actual_states.items():
-                controller.equipment_states[equipment] = \
-                    EquipmentState.ON if state == 'ON' else EquipmentState.OFF
-            
-            logger.info(f"STORAGE/HOLD mode states applied: {equipment_controller.actual_states}")
         
-        # Save state with process_active = False
-        state_manager = StateManager()
-        state_manager.save_state({
-            'process_active': False,  # <-- CRITICAL: False indicates hold state
-            'current_phase': 'storage',
-            'process_start_time': controller.process_start_time,
-            'phase_start_time': controller.phase_start_time,
-            'equipment_states': equipment_controller.actual_states if equipment_controller else {}
-        })
-        
-        logger.info("Process put on HOLD - entering STORAGE mode (process_active=False)")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Process on hold - storage mode active',
-            'cycle_state': 'holding'  # Explicitly tell frontend we're holding
-        })
-    except Exception as e:
-        logger.error(f"Hold process error: {e}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/process/stop', methods=['POST'])  
-def stop_process():
-    """Stop process completely"""
-    if not controller:
-        return jsonify({'error': 'System not initialized'}), 503
-    
-    try:
-        controller.process_active = False
-        controller.current_phase = DryingPhase.IDLE if hasattr(DryingPhase, 'IDLE') else DryingPhase.STORAGE
-        
-        # Clear saved state
+        # Save storage state
         state_manager = StateManager()
         state_manager.save_state({
             'process_active': False,
-            'current_phase': 'idle',
-            'process_start_time': None,
-            'phase_start_time': None,
-            'equipment_states': {}
+            'current_phase': 'storage',
+            'process_start_time': None,  # Clear batch
+            'phase_start_time': controller.phase_start_time,
+            'equipment_states': equipment_controller.actual_states if equipment_controller else {},
+            'paused': False
         })
         
-        logger.info("Process STOPPED - system idle")
+        logger.info("Entered STORAGE mode")
         
         return jsonify({
             'success': True,
-            'message': 'Process stopped'
+            'message': 'Storage mode active',
+            'cycle_state': 'storage'
         })
     except Exception as e:
+        logger.error(f"Storage mode error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/emergency-stop', methods=['POST'])
 def emergency_stop():
-    """Emergency stop - turn off ALL equipment"""
+    """Emergency stop - turn off ALL equipment EXCEPT mini-split"""
     logger.critical("🔴 EMERGENCY STOP ACTIVATED")
     
     if not controller:
@@ -896,51 +850,51 @@ def emergency_stop():
     try:
         from software.control.vpd_controller import EquipmentState
         
-        # Stop the process
         controller.process_active = False
-        # Don't change phase during emergency - keep current phase for resume
-        # controller.current_phase = DryingPhase.IDLE if hasattr(DryingPhase, 'IDLE') else DryingPhase.STORAGE
         
-        # Turn off ALL equipment using equipment controller
-        if equipment_controller and hasattr(equipment_controller, 'emergency_stop'):
-            equipment_controller.emergency_stop()
-            logger.info("Equipment controller emergency_stop() executed")
-        else:
-            # Fallback: manually turn off all equipment
-            if hasattr(controller, 'equipment_states'):
-                for equipment in controller.equipment_states.keys():
-                    controller.equipment_states[equipment] = EquipmentState.OFF
-                logger.info("All equipment turned OFF via controller")
+        # Turn off equipment using equipment controller
+        if equipment_controller:
+            # Emergency: Turn everything OFF except mini-split
+            emergency_states = {
+                'mini_split': 'ON',    # Keep mini-split running
+                'supply_fan': 'OFF',
+                'return_fan': 'OFF',
+                'hum_fan': 'OFF',
+                'hum_solenoid': 'OFF',
+                'dehum': 'OFF',
+                'erv': 'OFF'
+            }
+            
+            for equipment, state in emergency_states.items():
+                if equipment in equipment_controller.actual_states:
+                    equipment_controller.actual_states[equipment] = state
+                    equipment_controller._apply_state(equipment, state)
+            
+            logger.info("EMERGENCY: All equipment OFF except mini-split")
         
         # Save emergency state
         state_manager = StateManager()
         state_manager.save_state({
             'process_active': False,
             'current_phase': controller.current_phase.value if hasattr(controller.current_phase, 'value') else str(controller.current_phase),
-            'process_start_time': controller.process_start_time,  # Keep existing start time
+            'process_start_time': controller.process_start_time,
             'phase_start_time': controller.phase_start_time,
-            'equipment_states': {k: 'OFF' for k in controller.equipment_states.keys() if hasattr(controller, 'equipment_states')},
-            'emergency_stop': True  # Flag to indicate emergency state
+            'equipment_states': equipment_controller.actual_states if equipment_controller else {},
+            'emergency_stop': True,
+            'paused': False
         })
         
-        # Get current equipment states for response
-        equipment_states = {}
-        if hasattr(controller, 'equipment_states'):
-            equipment_states = {k: v.value if hasattr(v, 'value') else str(v) 
-                              for k, v in controller.equipment_states.items()}
+        logger.critical("EMERGENCY STOP COMPLETE")
         
         return jsonify({
             'success': True,
-            'status': 'emergency_stop_activated',
-            'message': 'Emergency stop executed - all equipment OFF',
-            'system_state': 'emergency',
-            'equipment': equipment_states
+            'message': 'Emergency stop activated - all equipment off except mini-split',
+            'cycle_state': 'emergency'
         })
-        
     except Exception as e:
-        logger.error(f"Error during emergency stop: {e}")
+        logger.error(f"Emergency stop error: {e}")
         return jsonify({'error': str(e)}), 500
-
+    
 @app.route('/api/session/start', methods=['POST'])
 def start_session():
     """Start a new drying session"""
